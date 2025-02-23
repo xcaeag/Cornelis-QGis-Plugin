@@ -1,0 +1,47 @@
+# This file contains metadata for your plugin.
+
+# This file should be included when you package your plugin.# Mandatory items:
+
+[general]
+name=Cornelis
+qgisMinimumVersion=3.34
+description=Help produce 'cartographic' tessellations of the plan, and try to imitate M.C. Escher.
+version=0.2
+author=Xavier Culos
+email=xavier.culos@mailo.fr
+
+about=Help produce 'cartographic' tessellations of the plan, and try to imitate M.C. Escher.
+
+tracker=http://bugs
+repository=https://github.com/xcaeag/Cornelis-QGis-Plugin
+# End of mandatory metadata
+
+# Recommended items:
+
+hasProcessingProvider=no
+# Uncomment the following line and add your changelog:
+# changelog=
+
+# Tags are comma separated with spaces allowed
+tags=vector,pavage,corlenis,escher,tesselation
+
+homepage=https://github.com/xcaeag/Cornelis-QGis-Plugin
+category=Plugins
+icon=icon.png
+# experimental flag
+experimental=True
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
+# Since QGIS 3.8, a comma separated list of plugins to be installed
+# (or upgraded) can be specified.
+# Check the documentation for more information.
+# plugin_dependencies=
+
+Category of the plugin: Raster, Vector, Database or Web
+# category=
+
+# If the plugin can run on QGIS Server.
+server=False
+
