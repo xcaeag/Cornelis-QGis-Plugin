@@ -1,9 +1,9 @@
-# pylupdate5 -noobsolete -verbose plugin_translation.pro  
+# pylupdate5 -noobsolete -verbose plugin_translation.pro
 
 SOURCES         = cornelisPlugin.py\
                   logic/pavage.py \
                   TDMapTool.py
 
-FORMS           = 
+FORMS           =
 
 TRANSLATIONS    = i18n/fr.ts
