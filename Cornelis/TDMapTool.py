@@ -167,15 +167,8 @@ class TDMapTool(QgsMapTool):
 
         self.key = Qt.Key_unknown
 
-        self.cursorAdd = self.getCursor("cursor-add.png")
-        self.cursorDel = self.getCursor("cursor-del.png")
-        self.cursorMoveAll = self.getCursor("cursor-moveall.png")
-        self.cursorStretchX = self.getCursor("cursor-stretchx.png")
-        self.cursorStretchY = self.getCursor("cursor-stretchy.png")
         self.cursorRotation = self.getCursor("cursor-rotation.png")
-        self.cursorRStretchX = self.getCursor("cursor-rstretchx.png")
-        self.cursorRStretchY = self.getCursor("cursor-rstretchy.png")
-        self.cursorRotation = self.getCursor("cursor-rotation.png")
+        self.cursorScale = self.getCursor("cursor-scale.png")
 
     def getCursor(self, name):
         url = str(DIR_PLUGIN_ROOT / "resources" / name)
@@ -373,9 +366,7 @@ class TDMapTool(QgsMapTool):
                 geom = f.geometry()
                 if transformationRequired:
                     geom.transform(
-                        QgsCoordinateTransform(
-                            layer_crs, mask_crs, QgsProject.instance()
-                        )
+                        QgsCoordinateTransform(layer_crs, mask_crs, QgsProject.instance())
                     )
                 geom = geom.intersection(gmask)
 
@@ -809,6 +800,8 @@ class TDMapTool(QgsMapTool):
                         self._canvas.setCursor(QCursor(Qt.SizeBDiagCursor))
                     elif Movement.STRECH_Y in t and Movement.ROTATION in t:
                         self._canvas.setCursor(QCursor(Qt.SizeFDiagCursor))
+                    elif Movement.STRECH_X in t and Movement.STRECH_Y in t:
+                        self._canvas.setCursor(self.cursorScale)
                     elif Movement.STRECH_X in t:
                         self._canvas.setCursor(QCursor(Qt.SplitHCursor))
                     elif Movement.STRECH_Y in t:
