@@ -176,7 +176,6 @@ def decomposeTransform(text: str):
         variables = match.group(4).split(",")
         return fact, letter, variables
     else:
-        # print(text, "non reconnu")
         return None
 
 
@@ -738,7 +737,6 @@ class Pattern:
         """
         imagesSegs = self.getImages()
 
-        # "tile": ["+s1", "+s2", "+s3", "-i1", "-i2", "-i3"],
         segments = []
         for order in self.typo["tile"]:
             regpattern = r"([+-])([a-z0-9]+)"
@@ -890,7 +888,6 @@ class Pattern:
 
         # tous les noeuds sauf extrémités
         for sid, seg in self.segs.items():
-            # idmid = len(seg) // 2
             for k, node in enumerate(seg[1:-1]):
                 pts[(sid, k + 1)] = QgsPointXY(node.x, node.y)
 
@@ -1067,8 +1064,7 @@ class Pattern:
         for arg in args:
             if arg in self.controles:
                 r.append(self.controles[arg])
-            # else:
-            #   print(f"Point {arg} non trouvé")
+
         return r
 
     def addNode(self, segId, nodeId, pointXY):
@@ -1093,7 +1089,6 @@ class Pattern:
             QgsGeometry.fromPolylineXY([QgsPointXY(n.x(), n.y()) for n in line])
             for line in self.sketch
         ]
-        # print(len(geoms))
         for i, g in enumerate(geoms):
             if g.distance(QgsGeometry.fromPointXY(ptXY)) < tolerance:
                 self.sketch.pop(i)
