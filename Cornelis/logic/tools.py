@@ -1,5 +1,4 @@
-from qgis.core import (QgsLayerTreeLayer, QgsProject,
-                       QgsRasterLayer, QgsVectorLayer)
+from qgis.core import QgsLayerTreeLayer, QgsProject, QgsRasterLayer, QgsVectorLayer
 
 
 def getRecursiveLayers(layers: dict, node, checkedOnly: bool = True):
@@ -33,4 +32,3 @@ def getLayers(checkedOnly: bool = True) -> dict:
     node = QgsProject.instance().layerTreeRoot()
     getRecursiveLayers(layers, node, checkedOnly)
     return layers
-

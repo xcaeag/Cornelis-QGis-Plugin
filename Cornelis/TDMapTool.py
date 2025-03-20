@@ -1,34 +1,32 @@
-# -*- coding: utf-8 -*-
 import json
+from enum import Enum
 
 from qgis.core import (
     Qgis,
     QgsApplication,
+    QgsCoordinateReferenceSystem,
+    QgsCoordinateTransform,
     QgsFeature,
     QgsFeatureRequest,
+    QgsField,
+    QgsFields,
     QgsGeometry,
     QgsMapLayerStyle,
     QgsPointXY,
-    QgsCoordinateTransform,
-    QgsCoordinateReferenceSystem,
     QgsProject,
     QgsVectorLayer,
     QgsWkbTypes,
-    QgsFields,
-    QgsField,
 )
 from qgis.gui import QgsMapTool, QgsRubberBand
 from qgis.PyQt.QtCore import Qt, QVariant
 from qgis.PyQt.QtGui import QColor, QCursor, QPixmap
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
+from qgis.utils import iface
 
 from .__about__ import DIR_PLUGIN_ROOT
-from .logic.pavage import Pavage
-from .logic.pavage import Movement
-from .logic.typo import Typo
+from .logic.pavage import Movement, Pavage
 from .logic.tools import getLayers
-
-from enum import Enum
+from .logic.typo import Typo
 
 globals()["globalPavage"] = None
 
@@ -191,10 +189,10 @@ class TDMapTool(QgsMapTool):
         self._plugin.deactivate()
         self._canvas.extentsChanged.disconnect(self.buildRubberBand)
 
-    def initPavage(self, type=Typo.T1a):
+    def initPavage(self, typo=Typo.T1a):
         if self.pavage is not None:
             promptReply = QMessageBox.question(
-                self._plugin.iface.mainWindow(),
+                iface.mainWindow(),
                 self.tr("New pavage"),
                 self.tr("Abandon the current tessellation ?"),
                 QMessageBox.Yes,
@@ -206,7 +204,7 @@ class TDMapTool(QgsMapTool):
         if self.pavage is None:
             extent = self._canvas.extent()
             w = min(extent.width() // 5, extent.height() // 5)
-            self.pavage = Pavage(type, extent.center(), w)
+            self.pavage = Pavage(typo, extent.center(), w)
             globals()["globalPavage"] = self.pavage
             self.reset()
 
@@ -366,7 +364,9 @@ class TDMapTool(QgsMapTool):
                 geom = f.geometry()
                 if transformationRequired:
                     geom.transform(
-                        QgsCoordinateTransform(layer_crs, mask_crs, QgsProject.instance())
+                        QgsCoordinateTransform(
+                            layer_crs, mask_crs, QgsProject.instance()
+                        )
                     )
                 geom = geom.intersection(gmask)
 
@@ -386,13 +386,11 @@ class TDMapTool(QgsMapTool):
         return newLayer
 
     def showProgress(self, text, percent):
-        self._plugin.iface.statusBarIface().showMessage(
-            "{} {} %".format(text, int(100 * percent))
-        )
+        iface.statusBarIface().showMessage("{} {} %".format(text, int(100 * percent)))
         QApplication.processEvents()
 
     def message(self, text, level=Qgis.Info, duration=5):
-        self._plugin.iface.messageBar().pushMessage(
+        iface.messageBar().pushMessage(
             self.tr("Tesselation"), text, level=level, duration=duration
         )
         QApplication.processEvents()
@@ -402,7 +400,6 @@ class TDMapTool(QgsMapTool):
             pname = self.pavage.typo["name"]
             gname = self.tr("Tesselation")
 
-            # self._plugin.iface.statusBarIface().showMessage("Processed {} %".format(int(percent)))
             group = QgsProject.instance().layerTreeRoot().findGroup(gname)
             if group is None:
                 group = QgsProject.instance().layerTreeRoot().insertGroup(0, gname)
@@ -460,7 +457,6 @@ class TDMapTool(QgsMapTool):
             self.patternPositions = positions
 
             layers = getLayers()
-            # layers[layerPoints.id()] = layerPoints
             self.message(self.tr("Initialization..."))
             newVectorLayers = []
             for layer in layers.values():
@@ -470,10 +466,11 @@ class TDMapTool(QgsMapTool):
                     try:
                         newV = self.prepareNewVectorLayer(group, layer, layerMask)
                         newVectorLayers.append(newV)
-                    except Exception as e:
-                        self.message(f"Traitement de la couche {layer.name()} impossible")
+                    except Exception:
+                        self.message(
+                            f"Traitement de la couche {layer.name()} impossible"
+                        )
 
-            # polysGeom = self.pavageSource.getBufferedPolygonsGeom()
             self.showProgress("Cornelis", 0)
             for ilayer, layer in enumerate(newVectorLayers):
                 self.showProgress("Cornelis", ilayer // len(newVectorLayers))
@@ -517,7 +514,9 @@ class TDMapTool(QgsMapTool):
                     images, name=self.tr("Sketch") + f" {pname}", typ="Linestring"
                 )
                 self.addLayer(group, layersketch, visible=False)
-                layersketch.loadNamedStyle(str(DIR_PLUGIN_ROOT / "resources/sketch.qml"))
+                layersketch.loadNamedStyle(
+                    str(DIR_PLUGIN_ROOT / "resources/sketch.qml")
+                )
 
             # Add pattern layer
             if len(patternGeoms) > 1:
@@ -552,9 +551,9 @@ class TDMapTool(QgsMapTool):
             raise e
 
         finally:
-            self._plugin.iface.statusBarIface().clearMessage()
-            self._plugin.iface.mapCanvas().refreshAllLayers()
-            self._plugin.iface.mapCanvas().waitWhileRendering()
+            iface.statusBarIface().clearMessage()
+            iface.mapCanvas().refreshAllLayers()
+            iface.mapCanvas().waitWhileRendering()
             QgsApplication.restoreOverrideCursor()
 
     def buildSelectionRubberBand(self):
@@ -570,14 +569,14 @@ class TDMapTool(QgsMapTool):
             pav_crs = self._canvas.mapSettings().destinationCrs()
 
             tileGeom = self.pavage.getTilePolygon()
-            layers = self._plugin.iface.layerTreeView().selectedLayers()
+            layers = iface.layerTreeView().selectedLayers()
             geomsPoint = []
             geomsPoly = []
             geomsLine = []
             for layer in layers:
                 if isinstance(layer, QgsVectorLayer):
                     layer_crs = QgsCoordinateReferenceSystem(layer.crs().authid())
-                    for f in layer.selectedFeatures()[:5]:
+                    for f in layer.selectedFeatures()[:10]:
                         g = f.geometry()
                         g.transform(
                             QgsCoordinateTransform(
@@ -592,33 +591,19 @@ class TDMapTool(QgsMapTool):
                         if layer.geometryType() == QgsWkbTypes.PolygonGeometry:
                             geomsPoly.append(g)
 
-            if len(geomsPoly) > 0:
-                images = []
-                for g in geomsPoly:
-                    images = images + self.pavage.getImagesGeomPavage(
-                        g, self.transformations, self.patternPositions
-                    )
-                self.rbSamplePoly.setToGeometry(images[0])
-                for g in images[1:]:
-                    self.rbSamplePoly.addGeometry(g)
-            if len(geomsPoint) > 0:
-                images = []
-                for g in geomsPoint:
-                    images = images + self.pavage.getImagesGeomPavage(
-                        g, self.transformations, self.patternPositions
-                    )
-                self.rbSamplePoint.setToGeometry(images[0])
-                for g in images[1:]:
-                    self.rbSamplePoint.addGeometry(g)
-            if len(geomsLine) > 0:
-                images = []
-                for g in geomsLine:
-                    images = images + self.pavage.getImagesGeomPavage(
-                        g, self.transformations, self.patternPositions
-                    )
-                self.rbSampleLine.setToGeometry(images[0])
-                for g in images[1:]:
-                    self.rbSampleLine.addGeometry(g)
+            for geoms, rbSample in zip(
+                (geomsPoly, geomsPoint, geomsLine),
+                (self.rbSamplePoly, self.rbSamplePoint, self.rbSampleLine),
+            ):
+                if len(geoms) > 0:
+                    images = []
+                    for g in geoms:
+                        images = images + self.pavage.getImagesGeomPavage(
+                            g, self.transformations, self.patternPositions
+                        )
+                    rbSample.setToGeometry(images[0])
+                    for g in images[1:]:
+                        rbSample.addGeometry(g)
 
     def buildCursorRubberBand(self, ptXY):
         geom = QgsGeometry.fromPointXY(ptXY)
@@ -760,10 +745,24 @@ class TDMapTool(QgsMapTool):
                     self.currentNodeId = idp
                     self.mode = Mode.MOVE_P
 
+    def setCursor(self, t):
+        if Movement.MOVE_ALL in t:
+            self._canvas.setCursor(QCursor(Qt.OpenHandCursor))
+        elif Movement.STRECH_X in t and Movement.ROTATION in t:
+            self._canvas.setCursor(QCursor(Qt.SizeBDiagCursor))
+        elif Movement.STRECH_Y in t and Movement.ROTATION in t:
+            self._canvas.setCursor(QCursor(Qt.SizeFDiagCursor))
+        elif Movement.STRECH_X in t and Movement.STRECH_Y in t:
+            self._canvas.setCursor(self.cursorScale)
+        elif Movement.STRECH_X in t:
+            self._canvas.setCursor(QCursor(Qt.SplitHCursor))
+        elif Movement.STRECH_Y in t:
+            self._canvas.setCursor(QCursor(Qt.SplitVCursor))
+        elif Movement.ROTATION in t:
+            self._canvas.setCursor(self.cursorRotation)
+
     def canvasMoveEvent(self, event):
         """ """
-        # QApplication.processEvents()
-
         if self.pavage is None:
             return
 
@@ -785,8 +784,8 @@ class TDMapTool(QgsMapTool):
             if self.pavageVisible and not self.drawingMode:
                 idp = self.pavage.getIsHandleP(xpos, ypos, dist)
 
-                (self.currentSegId, self.currentNodeId) = self.pavage.getIsHandleMoveNode(
-                    xpos, ypos, dist
+                (self.currentSegId, self.currentNodeId) = (
+                    self.pavage.getIsHandleMoveNode(xpos, ypos, dist)
                 )
                 addId = self.pavage.getIsHandleAdd(xpos, ypos, dist)
 
@@ -794,20 +793,7 @@ class TDMapTool(QgsMapTool):
                     self._canvas.setCursor(QCursor(Qt.CrossCursor))
                 elif idp is not None:
                     t = self.pavage.getPMouseMovement(idp)
-                    if Movement.MOVE_ALL in t:
-                        self._canvas.setCursor(QCursor(Qt.OpenHandCursor))
-                    elif Movement.STRECH_X in t and Movement.ROTATION in t:
-                        self._canvas.setCursor(QCursor(Qt.SizeBDiagCursor))
-                    elif Movement.STRECH_Y in t and Movement.ROTATION in t:
-                        self._canvas.setCursor(QCursor(Qt.SizeFDiagCursor))
-                    elif Movement.STRECH_X in t and Movement.STRECH_Y in t:
-                        self._canvas.setCursor(self.cursorScale)
-                    elif Movement.STRECH_X in t:
-                        self._canvas.setCursor(QCursor(Qt.SplitHCursor))
-                    elif Movement.STRECH_Y in t:
-                        self._canvas.setCursor(QCursor(Qt.SplitVCursor))
-                    elif Movement.ROTATION in t:
-                        self._canvas.setCursor(self.cursorRotation)
+                    self.setCursor(t)
 
                 elif self.currentNodeId is not None:
                     if self.key & Qt.ControlModifier:
@@ -867,8 +853,7 @@ class TDMapTool(QgsMapTool):
             self.mode = None
 
             QgsApplication.restoreOverrideCursor()
-            # self._plugin.iface.mapCanvas().refreshAllLayers()
-            self._plugin.iface.mapCanvas().waitWhileRendering()
+            iface.mapCanvas().waitWhileRendering()
 
     def keyPressEvent(self, e):
         self.key = e.modifiers()

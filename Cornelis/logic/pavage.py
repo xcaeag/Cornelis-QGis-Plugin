@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
-import re
 import math
-from qgis.core import QgsGeometry, QgsPointXY, QgsPoint, QgsMultiPoint
-
+import re
 from dataclasses import dataclass
-from typing import List
 from enum import Enum
+from typing import List
 
-from .typo import Typo, TYPES_PAVAGES
+from qgis.core import QgsGeometry, QgsMultiPoint, QgsPoint, QgsPointXY
+
+from .typo import TYPES_PAVAGES, Typo
 
 
 class Movement(Enum):
@@ -170,12 +169,12 @@ def decomposeTransform(text: str):
                 fact = -1
             else:
                 fact = int(fact)
-        except:
+        except Exception:
             fact = 1
 
         letter = match.group(3)
-        vars = match.group(4).split(",")
-        return fact, letter, vars
+        variables = match.group(4).split(",")
+        return fact, letter, variables
     else:
         # print(text, "non reconnu")
         return None
@@ -609,17 +608,17 @@ class Flip(Transformation):
 
 
 class Pattern:
-    type: Typo
+    typo: Typo
     segs: dict
     p0: Node
     p1: Node
     p2: Node
 
-    def __init__(self, type, p0, w):
-        self.type = type
+    def __init__(self, typo, p0, w):
+        self.typo = typo
         self.p0 = p0
         self.w = w
-        self.typo = dict(TYPES_PAVAGES[type])
+        self.typo = dict(TYPES_PAVAGES[typo])
 
         # origin node
         if "p0" not in self.typo["controls"]:
@@ -1102,8 +1101,8 @@ class Pattern:
 
 
 class Pavage(Pattern):
-    def __init__(self, type, center, width):
-        super().__init__(type, center, width)
+    def __init__(self, typo, center, width):
+        super().__init__(typo, center, width)
 
     def getAllControlsPointsXY(self) -> QgsGeometry:
         points = []
@@ -1273,7 +1272,7 @@ class Pavage(Pattern):
     def getJson(self):
         s = {}
 
-        s["type"] = self.type.value
+        s["type"] = self.typo.value
         s["p0"] = [self.p0.x(), self.p0.y()]
         s["w"] = self.w
 

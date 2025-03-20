@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 /***************************************************************************
  Cornelis
@@ -34,4 +33,4 @@ def classFactory(iface):  # pylint: disable=invalid-name
     #
     from .cornelisPlugin import CornelisPlugin
 
-    return CornelisPlugin(iface)
+    return CornelisPlugin()
