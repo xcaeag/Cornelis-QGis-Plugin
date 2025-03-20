@@ -46,7 +46,7 @@ Ce croquis est déformé par les opérations de rotation, redimensionnement du m
 
 **S'aider d'une sélection**
 
-Les objets sélectionnés (jusqu'à 10) sont répété selon le modèle de pavage, pour une anticipation du rendu final.
+Les objets sélectionnés (jusqu'à 10) sont répétés selon le modèle de pavage, pour une anticipation du rendu final.
 
 ![alt text](Cornelis/resources/demo6.gif)
 
