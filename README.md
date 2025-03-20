@@ -5,9 +5,9 @@ Catégorie : [inutile] en géomatique !
 
 [Maurits Cornelis Escher](https://en.wikipedia.org/wiki/M._C._Escher), cet artiste Hollandais dont vous connaissez évidemment quelques unes de ses gravures (sur bois notamment) avait poussé loin l'exploration des façons de paver le plan avec un motif de base, en étudiant entre autre les mosaïques de L’Alhambra.
 
-Fasciné depuis petit par ces gravures d'une précision incroyable, et motivé par la visite de l'exposition Toulousaine (2025) qui présentait de nombreux originaux, l'idée de faire un outil (couplé à la carto bien sûr !) est naturellement venue. 
+Fasciné depuis petit par ces gravures d'une précision incroyable, et motivé par la visite de l'exposition Toulousaine (2025) qui présentait de nombreux originaux, l'idée de faire un outil (couplé à la carto bien sûr !) est naturellement venue.
 
-Cette extension pour QGis vous permettra de créer vos pavages, selon l'un des 35 types et sous-types dont la nomenclature 
+Cette extension pour QGis vous permettra de créer vos pavages, selon l'un des 35 types et sous-types dont la nomenclature
 a été trouvée sur l'excellent site d'Alain Nicolas : [Tessellations](https://fr.tessellations-nicolas.com/methode.php).
 
 L'intégration à QGis permet, après tracé de son pavage, de multiplier les géométries (des couches vectorielles visibles) contenues dans la forme de base. Celles-ci clippées, transformées, dupliquées selon les règles de transformation du motif choisi et remodelé, vont tapisser l'espace pour créer alors une carte potentiellement 'infinie'.
@@ -46,9 +46,9 @@ Ce croquis est déformé par les opérations de rotation, redimensionnement du m
 
 **S'aider d'une sélection**
 
-## Construire la carte 
+## Construire la carte
 
-![alt text](Cornelis/resources/vectorDeformCalc.svg) : Lance la construction du pavage.
+![alt text](Cornelis/resources/vectorDeformCalc.svg) : Lance la construction de la carte pavée.
 
 Utilise les géométries des couches vectorielles visibles qui intersectent le motif de base (coloré).
 
@@ -57,7 +57,7 @@ Elles sont alors transformées pour couvrir la zone visible et paver le plan.
 **Les couches produites**
 
 - Autant de copies que de couches vectorielles affichées.
-  
+
 - Une couche contenant la tuile de base
 
 - Une couche contenant le motif de base (si plusieurs tuiles le composent)
@@ -68,14 +68,14 @@ Elles sont alors transformées pour couvrir la zone visible et paver le plan.
 
 ## Utiliser l'expression 'cornelis' dans un générateur de géométrie
 
-Avec le type de symbole 'générateur de géométrie', tout est permis ! La fonction "cornelis" s'appuyant sur le pavage courant va transformer les entités à la volée. 
+Avec le type de symbole 'générateur de géométrie', tout est permis ! La fonction "cornelis" s'appuyant sur le pavage courant va transformer les entités à la volée.
 
-Usage : 
+Usage :
 ```python
 cornelis($geometry)
 ```
 
-Ou si la couche n'était pas stockée dans la même projection que celle de la carte, une double transformation peut être nécessaire. 
+Ou si la couche n'était pas stockée dans la même projection que celle de la carte, une double transformation peut être nécessaire.
 
 ```python
 # ou 4326 est la projection de la couche et 2154 celle de la carte
@@ -87,7 +87,7 @@ transform(
 
 Cet usage peut être utile si besoin d'édition des géométries, pour affiner par exemple les raccords aux frontières.
 
-Attention : un petit défaut oblige à déplacer la carte pour déclencher le rafraîchissement du pavage.
+Attention : un petit défaut oblige à déplacer la carte pour déclencher le rafraîchissement.
 
 ![alt text](Cornelis/resources/demo5.gif)
 
@@ -98,4 +98,3 @@ Attention : un petit défaut oblige à déplacer la carte pour déclencher le ra
 ![alt text](Cornelis/resources/vectorDeformLoad.svg) : Restaure un pavage précédemment sauvegardé.
 
 ![alt text](Cornelis/resources/vectorDeformSource.svg) : Affiche ou masque le pavage
-
