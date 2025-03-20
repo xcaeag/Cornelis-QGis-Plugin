@@ -46,6 +46,10 @@ Ce croquis est déformé par les opérations de rotation, redimensionnement du m
 
 **S'aider d'une sélection**
 
+Les objets sélectionnés (jusqu'à 10) sont répété selon le modèle de pavage, pour une anticipation du rendu final.
+
+![alt text](Cornelis/resources/demo6.gif)
+
 ## Construire la carte
 
 ![alt text](Cornelis/resources/vectorDeformCalc.svg) : Lance la construction de la carte pavée.
