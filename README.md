@@ -98,3 +98,8 @@ Attention : un petit défaut oblige à déplacer la carte pour déclencher le ra
 ![alt text](Cornelis/resources/vectorDeformLoad.svg) : Restaure un pavage précédemment sauvegardé.
 
 ![alt text](Cornelis/resources/vectorDeformSource.svg) : Affiche ou masque le pavage
+
+
+\
+\
+![alt text](Cornelis/resources/cornelis_tlse.gif)
