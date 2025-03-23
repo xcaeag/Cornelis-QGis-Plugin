@@ -12,7 +12,7 @@ email=xavier.culos@mailo.fr
 
 about=Help produce 'cartographic' tessellations of the plan, and try to imitate M.C. Escher.
 
-tracker=http://bugs
+tracker=https://github.com/xcaeag/Cornelis-QGis-Plugin/issues
 repository=https://github.com/xcaeag/Cornelis-QGis-Plugin
 # End of mandatory metadata
 
