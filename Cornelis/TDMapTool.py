@@ -67,57 +67,79 @@ class TDMapTool(QgsMapTool):
         self.mode = None
 
         # single tile
-        self.rbTile = QgsRubberBand(self._canvas, QgsWkbTypes.PolygonGeometry)
+        self.rbTile = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.PolygonGeometry
+        )
         self.rbTile.setStrokeColor(QColor(150, 20, 100, 100))
         self.rbTile.setFillColor(QColor(150, 20, 100, 100))
         self.rbTile.setWidth(6)
 
         # pattern
-        self.rbPattern = QgsRubberBand(self._canvas, QgsWkbTypes.PolygonGeometry)
+        self.rbPattern = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.PolygonGeometry
+        )
         self.rbPattern.setStrokeColor(QColor(30, 80, 150, 100))
         self.rbPattern.setFillColor(QColor(30, 80, 150, 50))
         self.rbPattern.setWidth(3)
 
         # pavage sample
-        self.rbPavage = QgsRubberBand(self._canvas, QgsWkbTypes.PolygonGeometry)
+        self.rbPavage = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.PolygonGeometry
+        )
         self.rbPavage.setStrokeColor(QColor(30, 100, 60, 200))
         self.rbPavage.setFillColor(QColor(30, 100, 60, 0))
         self.rbPavage.setWidth(2)
 
-        self.rbInvalid = QgsRubberBand(self._canvas, QgsWkbTypes.PolygonGeometry)
+        self.rbInvalid = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.PolygonGeometry
+        )
         self.rbInvalid.setFillColor(QColor(230, 150, 150, 80))
         self.rbInvalid.setWidth(0)
 
-        self.rbSamplePoly = QgsRubberBand(self._canvas, QgsWkbTypes.PolygonGeometry)
+        self.rbSamplePoly = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.PolygonGeometry
+        )
         self.rbSamplePoly.setFillColor(QColor(100, 230, 150, 150))
         self.rbSamplePoly.setStrokeColor(QColor(50, 50, 120, 200))
         self.rbSamplePoly.setWidth(3)
 
-        self.rbSamplePoint = QgsRubberBand(self._canvas, QgsWkbTypes.PointGeometry)
+        self.rbSamplePoint = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.PointGeometry
+        )
         self.rbSamplePoint.setFillColor(QColor(100, 230, 150, 150))
         self.rbSamplePoint.setStrokeColor(QColor(50, 50, 120, 200))
         self.rbSamplePoint.setWidth(3)
 
-        self.rbSampleLine = QgsRubberBand(self._canvas, QgsWkbTypes.LineGeometry)
+        self.rbSampleLine = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.LineGeometry
+        )
         self.rbSampleLine.setStrokeColor(QColor(50, 50, 120, 200))
         self.rbSampleLine.setWidth(3)
 
         # Croquis
-        self.rbSketch = QgsRubberBand(self._canvas, QgsWkbTypes.LineGeometry)
+        self.rbSketch = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.LineGeometry
+        )
         self.rbSketch.setStrokeColor(QColor(170, 50, 50, 200))
         self.rbSketch.setWidth(2)
 
-        self.rbSketches = QgsRubberBand(self._canvas, QgsWkbTypes.LineGeometry)
+        self.rbSketches = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.LineGeometry
+        )
         self.rbSketches.setStrokeColor(QColor(150, 50, 50, 100))
         self.rbSketches.setWidth(2)
 
         # noeuds déplaçables
-        self.rbNodes = QgsRubberBand(self._canvas, QgsWkbTypes.PointGeometry)
+        self.rbNodes = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.PointGeometry
+        )
         self.rbNodes.setStrokeColor(QColor(40, 100, 180, 200))
         self.rbNodes.setWidth(5)
 
         # autres noeuds (centres de rotation...)
-        self.rbOtherNodes = QgsRubberBand(self._canvas, QgsWkbTypes.PointGeometry)
+        self.rbOtherNodes = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.PointGeometry
+        )
         self.rbOtherNodes.setStrokeColor(QColor(30, 30, 30, 150))
         self.rbOtherNodes.setFillColor(QColor(30, 30, 30, 10))
         self.rbOtherNodes.setWidth(3)
@@ -125,7 +147,9 @@ class TDMapTool(QgsMapTool):
         self.rbOtherNodes.setIconSize(7)
 
         # pour ajouter des noeuds intermédiaires
-        self.rbAddNode = QgsRubberBand(self._canvas, QgsWkbTypes.PointGeometry)
+        self.rbAddNode = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.PointGeometry
+        )
         self.rbAddNode.setStrokeColor(QColor(50, 50, 200, 200))
         self.rbAddNode.setFillColor(QColor(120, 120, 200, 150))
         self.rbAddNode.setWidth(3)
@@ -133,13 +157,17 @@ class TDMapTool(QgsMapTool):
         self.rbAddNode.setIconSize(7)
 
         # points de contrôle (déplacement, rotation...)
-        self.rbControls = QgsRubberBand(self._canvas, QgsWkbTypes.PointGeometry)
+        self.rbControls = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.PointGeometry
+        )
         self.rbControls.setStrokeColor(QColor(130, 80, 160, 250))
         self.rbControls.setFillColor(QColor(255, 30, 30, 220))
         self.rbControls.setIcon(QgsRubberBand.ICON_CIRCLE)
         self.rbControls.setIconSize(12)
 
-        self.rbCursors = QgsRubberBand(self._canvas, QgsWkbTypes.PointGeometry)
+        self.rbCursors = QgsRubberBand(
+            self._canvas, QgsWkbTypes.GeometryType.PointGeometry
+        )
         self.rbCursors.setFillColor(QColor(100, 230, 150, 50))
         self.rbCursors.setStrokeColor(QColor(50, 50, 120, 100))
         self.rbCursors.setWidth(3)
@@ -195,10 +223,10 @@ class TDMapTool(QgsMapTool):
                 iface.mainWindow(),
                 self.tr("New pavage"),
                 self.tr("Abandon the current tessellation ?"),
-                QMessageBox.Yes,
-                QMessageBox.No,
+                QMessageBox.StandardButton.Yes,
+                QMessageBox.StandardButton.No,
             )
-            if promptReply == QMessageBox.Yes:
+            if promptReply == QMessageBox.StandardButton.Yes:
                 self.pavage = None
 
         if self.pavage is None:
@@ -584,11 +612,20 @@ class TDMapTool(QgsMapTool):
                             )
                         )
                         g = g.intersection(tileGeom)
-                        if layer.geometryType() == QgsWkbTypes.PointGeometry:
+                        if (
+                            layer.geometryType()
+                            == QgsWkbTypes.GeometryType.PointGeometry
+                        ):
                             geomsPoint.append(g)
-                        if layer.geometryType() == QgsWkbTypes.LineGeometry:
+                        if (
+                            layer.geometryType()
+                            == QgsWkbTypes.GeometryType.LineGeometry
+                        ):
                             geomsLine.append(g)
-                        if layer.geometryType() == QgsWkbTypes.PolygonGeometry:
+                        if (
+                            layer.geometryType()
+                            == QgsWkbTypes.GeometryType.PolygonGeometry
+                        ):
                             geomsPoly.append(g)
 
             for geoms, rbSample in zip(

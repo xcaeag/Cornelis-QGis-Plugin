@@ -7,6 +7,8 @@ name=Cornelis
 qgisMinimumVersion=3.34
 description=Help produce 'cartographic' tessellations of the plan, and try to imitate M.C. Escher.
 version=0.3.0-dev
+supportsQt6=True
+
 author=Xavier Culos
 email=xavier.culos@mailo.fr
 

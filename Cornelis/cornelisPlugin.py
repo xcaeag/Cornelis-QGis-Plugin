@@ -27,9 +27,15 @@
 import os.path
 from functools import partial
 
-from qgis.core import Qgis, QgsApplication, QgsExpression, QgsExpressionFunction
+from qgis.core import (
+    Qgis,
+    QgsApplication,
+    QgsExpression,
+    QgsExpressionFunction,
+    QgsSettings,
+)
 from qgis.gui import QgsMapTool
-from qgis.PyQt.QtCore import QCoreApplication, QSettings, Qt, QTranslator
+from qgis.PyQt.QtCore import QCoreApplication, QLocale, Qt, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QFileDialog, QMenu, QMessageBox, QToolButton
 from qgis.utils import iface
@@ -38,7 +44,7 @@ from .__about__ import DIR_PLUGIN_ROOT
 from .logic.typo import TYPES_PAVAGES, Typo, Typo1, TypoTree
 
 # Initialize Qt resources from file resources.py
-from .resources import *
+# from .resources import *
 from .TDMapTool import TDMapTool
 
 
@@ -94,7 +100,7 @@ class CornelisPlugin:
         # initialize plugin directory
         self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
-        locale = QSettings().value("locale/userLocale")[0:2]
+        locale = QgsSettings().value("locale/userLocale", QLocale().name())
         locale_path = os.path.join(self.plugin_dir, "i18n", "{}.qm".format(locale))
 
         self.typo = Typo.T1a
@@ -290,21 +296,21 @@ class CornelisPlugin:
 
     def loadPavage(self):
         self.activateMapTool()
+        abandon = False
 
         if self.mt.pavage is not None:
             promptReply = QMessageBox.question(
                 iface.mainWindow(),
                 self.tr("New pavage"),
                 self.tr("Abandon the current tessellation ?"),
-                QMessageBox.Yes,
-                QMessageBox.No,
+                QMessageBox.StandardButton.Yes,
+                QMessageBox.StandardButton.No,
             )
-            if promptReply == QMessageBox.Yes:
-                self.mt.pavage = None
+            abandon = promptReply == QMessageBox.StandardButton.Yes
 
-        if self.mt.pavage is None:
+        if self.mt.pavage is None or abandon:
             options = QFileDialog.Options()
-            options |= QFileDialog.DontUseNativeDialog
+            options |= QFileDialog.Option.DontUseNativeDialog
             dlg = QFileDialog()
             dlg.setDefaultSuffix(".pav")
             fileName, _ = dlg.getOpenFileName(
@@ -324,7 +330,7 @@ class CornelisPlugin:
     def savePavage(self):
         self.activateMapTool()
         options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
+        options |= QFileDialog.Option.DontUseNativeDialog
         dlg = QFileDialog()
         dlg.setDefaultSuffix(".pav")
         fileName, _ = dlg.getSaveFileName(
