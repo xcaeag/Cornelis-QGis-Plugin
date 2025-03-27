@@ -143,7 +143,7 @@ class TDMapTool(QgsMapTool):
         self.rbOtherNodes.setStrokeColor(QColor(30, 30, 30, 150))
         self.rbOtherNodes.setFillColor(QColor(30, 30, 30, 10))
         self.rbOtherNodes.setWidth(3)
-        self.rbOtherNodes.setIcon(QgsRubberBand.ICON_CIRCLE)
+        self.rbOtherNodes.setIcon(QgsRubberBand.IconType.ICON_CIRCLE)
         self.rbOtherNodes.setIconSize(7)
 
         # pour ajouter des noeuds intermédiaires
@@ -153,7 +153,7 @@ class TDMapTool(QgsMapTool):
         self.rbAddNode.setStrokeColor(QColor(50, 50, 200, 200))
         self.rbAddNode.setFillColor(QColor(120, 120, 200, 150))
         self.rbAddNode.setWidth(3)
-        self.rbAddNode.setIcon(QgsRubberBand.ICON_CIRCLE)
+        self.rbAddNode.setIcon(QgsRubberBand.IconType.ICON_CIRCLE)
         self.rbAddNode.setIconSize(7)
 
         # points de contrôle (déplacement, rotation...)
@@ -162,7 +162,7 @@ class TDMapTool(QgsMapTool):
         )
         self.rbControls.setStrokeColor(QColor(130, 80, 160, 250))
         self.rbControls.setFillColor(QColor(255, 30, 30, 220))
-        self.rbControls.setIcon(QgsRubberBand.ICON_CIRCLE)
+        self.rbControls.setIcon(QgsRubberBand.IconType.ICON_CIRCLE)
         self.rbControls.setIconSize(12)
 
         self.rbCursors = QgsRubberBand(
@@ -171,7 +171,7 @@ class TDMapTool(QgsMapTool):
         self.rbCursors.setFillColor(QColor(100, 230, 150, 50))
         self.rbCursors.setStrokeColor(QColor(50, 50, 120, 100))
         self.rbCursors.setWidth(3)
-        self.rbCursors.setIcon(QgsRubberBand.ICON_CIRCLE)
+        self.rbCursors.setIcon(QgsRubberBand.IconType.ICON_CIRCLE)
         self.rbCursors.setIconSize(6)
 
         self.rubbers = [
@@ -191,7 +191,7 @@ class TDMapTool(QgsMapTool):
             self.rbSampleLine,
         ]
 
-        self.key = Qt.Key_unknown
+        self.key = Qt.Key.Key_unknown
 
         self.cursorRotation = self.getCursor("cursor-rotation.png")
         self.cursorScale = self.getCursor("cursor-scale.png")
@@ -199,7 +199,7 @@ class TDMapTool(QgsMapTool):
     def getCursor(self, name):
         url = str(DIR_PLUGIN_ROOT / "resources" / name)
         img = QPixmap(url)
-        mask = img.createMaskFromColor(QColor(0, 255, 255), Qt.MaskInColor)
+        mask = img.createMaskFromColor(QColor(0, 255, 255), Qt.MaskMode.MaskInColor)
         img.setMask(mask)
         return QCursor(img)
 
@@ -417,7 +417,7 @@ class TDMapTool(QgsMapTool):
         iface.statusBarIface().showMessage("{} {} %".format(text, int(100 * percent)))
         QApplication.processEvents()
 
-    def message(self, text, level=Qgis.Info, duration=5):
+    def message(self, text, level=Qgis.MessageLevel.Info, duration=5):
         iface.messageBar().pushMessage(
             self.tr("Tesselation"), text, level=level, duration=duration
         )
@@ -572,10 +572,10 @@ class TDMapTool(QgsMapTool):
             self.addLayer(group, layerPavage, visible=False)
             layerPavage.loadNamedStyle(str(DIR_PLUGIN_ROOT / "resources/pavage.qml"))
 
-            self.message(self.tr("End !"), level=Qgis.Success)
+            self.message(self.tr("End !"), level=Qgis.MessageLevel.Success)
 
         except Exception as e:
-            self.message(self.tr("End !"), level=Qgis.Critical)
+            self.message(self.tr("End !"), level=Qgis.MessageLevel.Critical)
             raise e
 
         finally:
@@ -755,14 +755,14 @@ class TDMapTool(QgsMapTool):
 
         if self.drawingMode:
             self.mode = Mode.DRAWING
-            if not self.key & Qt.ControlModifier:
+            if not self.key & Qt.KeyboardModifier.ControlModifier:
                 self.pavage.sketch.append([self.currentPointXY])
 
         elif self.pavageVisible:
             snid = self.pavage.getIsHandleMoveNode(xpos, ypos, dist)
             if snid[0] is not None:
                 (self.currentSegId, self.currentNodeId) = snid
-                if self.key & Qt.ControlModifier:
+                if self.key & Qt.KeyboardModifier.ControlModifier:
                     self.mode = Mode.DEL_NODE
                 else:
                     self.mode = Mode.MOVE_NODE
@@ -784,17 +784,17 @@ class TDMapTool(QgsMapTool):
 
     def setCursor(self, t):
         if Movement.MOVE_ALL in t:
-            self._canvas.setCursor(QCursor(Qt.OpenHandCursor))
+            self._canvas.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
         elif Movement.STRECH_X in t and Movement.ROTATION in t:
-            self._canvas.setCursor(QCursor(Qt.SizeBDiagCursor))
+            self._canvas.setCursor(QCursor(Qt.CursorShape.SizeBDiagCursor))
         elif Movement.STRECH_Y in t and Movement.ROTATION in t:
-            self._canvas.setCursor(QCursor(Qt.SizeFDiagCursor))
+            self._canvas.setCursor(QCursor(Qt.CursorShape.SizeFDiagCursor))
         elif Movement.STRECH_X in t and Movement.STRECH_Y in t:
             self._canvas.setCursor(self.cursorScale)
         elif Movement.STRECH_X in t:
-            self._canvas.setCursor(QCursor(Qt.SplitHCursor))
+            self._canvas.setCursor(QCursor(Qt.CursorShape.SplitHCursor))
         elif Movement.STRECH_Y in t:
-            self._canvas.setCursor(QCursor(Qt.SplitVCursor))
+            self._canvas.setCursor(QCursor(Qt.CursorShape.SplitVCursor))
         elif Movement.ROTATION in t:
             self._canvas.setCursor(self.cursorRotation)
 
@@ -812,7 +812,7 @@ class TDMapTool(QgsMapTool):
         )
         dx = dy = 0
 
-        self._canvas.setCursor(QCursor(Qt.PointingHandCursor))
+        self._canvas.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         if self.pavageVisible:
             self.buildCursorRubberBand(self.currentPointXY)
@@ -827,19 +827,19 @@ class TDMapTool(QgsMapTool):
                 addId = self.pavage.getIsHandleAdd(xpos, ypos, dist)
 
                 if addId[0] is not None:
-                    self._canvas.setCursor(QCursor(Qt.CrossCursor))
+                    self._canvas.setCursor(QCursor(Qt.CursorShape.CrossCursor))
                 elif idp is not None:
                     t = self.pavage.getPMouseMovement(idp)
                     self.setCursor(t)
 
                 elif self.currentNodeId is not None:
-                    if self.key & Qt.ControlModifier:
-                        self._canvas.setCursor(QCursor(Qt.ForbiddenCursor))
+                    if self.key & Qt.KeyboardModifier.ControlModifier:
+                        self._canvas.setCursor(QCursor(Qt.CursorShape.ForbiddenCursor))
                     else:
-                        self._canvas.setCursor(QCursor(Qt.ClosedHandCursor))
+                        self._canvas.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
 
         else:
-            if self.mode == Mode.DRAWING and not (self.key & Qt.ControlModifier):
+            if self.mode == Mode.DRAWING and not (self.key & Qt.KeyboardModifier.ControlModifier):
                 self.pavage.sketch[-1].append(self.currentPointXY)
                 self.buildSketchRubberBand()
 
@@ -867,7 +867,7 @@ class TDMapTool(QgsMapTool):
     def canvasReleaseEvent(self, event):
         """ """
         try:
-            if self.key & Qt.ControlModifier:
+            if self.key & Qt.KeyboardModifier.ControlModifier:
                 if self.mode == Mode.DEL_NODE:
                     if self.currentNodeId is not None:
                         self.pavage.removeNode(self.currentSegId, self.currentNodeId)
@@ -881,7 +881,7 @@ class TDMapTool(QgsMapTool):
 
             self.buildSelectionRubberBand()
 
-            if self.mode == Mode.DRAWING and not (self.key & Qt.ControlModifier):
+            if self.mode == Mode.DRAWING and not (self.key & Qt.KeyboardModifier.ControlModifier):
                 self.buildSketchRubberBand()
         finally:
             self.mousePressed = False

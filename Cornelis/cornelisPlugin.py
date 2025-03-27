@@ -356,13 +356,13 @@ class CornelisPlugin:
     def do(self):
         self.activateMapTool()
         try:
-            QgsApplication.setOverrideCursor(Qt.WaitCursor)
+            QgsApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
             self.mt.do()
         except Exception as e:
             iface.messageBar().pushMessage(
                 "Cornelis Plugin",
                 "{} - {}".format(self.tr("Error during process"), str(e)),
-                level=Qgis.Warning,
+                level=Qgis.MessageLevel.Warning,
                 duration=5,
             )
             raise e
