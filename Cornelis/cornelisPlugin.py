@@ -97,11 +97,9 @@ class CornelisPlugin:
         """Constructor."""
         # Save reference to the QGIS interface
         self.canvas = iface.mapCanvas()
-        # initialize plugin directory
-        self.plugin_dir = os.path.dirname(__file__)
         # initialize locale
         locale = QgsSettings().value("locale/userLocale", QLocale().name())
-        locale_path = os.path.join(self.plugin_dir, "i18n", "{}.qm".format(locale))
+        locale_path = str(DIR_PLUGIN_ROOT / "i18n" / "{}.qm".format(locale))
 
         self.typo = Typo.T1a
 
