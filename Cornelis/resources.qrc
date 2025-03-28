@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/Cornelis" >
-        <file>icon.png</file>
-    </qresource>
-</RCC>

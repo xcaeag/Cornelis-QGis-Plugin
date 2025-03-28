@@ -42,9 +42,6 @@ from qgis.utils import iface
 
 from .__about__ import DIR_PLUGIN_ROOT
 from .logic.typo import TYPES_PAVAGES, Typo, Typo1, TypoTree
-
-# Initialize Qt resources from file resources.py
-# from .resources import *
 from .TDMapTool import TDMapTool
 
 
