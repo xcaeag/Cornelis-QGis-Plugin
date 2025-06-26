@@ -169,7 +169,7 @@ class CornelisPlugin:
 
         self.actionTypes = []
         for typo1 in Typo1:
-            subButtonMenu = toolButtonMenu.addMenu(f"{TypoTree[typo1]["name"]}")
+            subButtonMenu = toolButtonMenu.addMenu(TypoTree[typo1]["name"])
             subButtonMenu.setToolTipsVisible(True)
             for t in TypoTree[typo1]["types"]:
                 a = self.createTypeAction(t)
