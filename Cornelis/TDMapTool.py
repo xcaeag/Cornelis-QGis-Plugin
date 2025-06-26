@@ -191,7 +191,7 @@ class TDMapTool(QgsMapTool):
             self.rbSampleLine,
         ]
 
-        self.key = Qt.Key.Key_unknown
+        self.keyModifier = None
 
         self.cursorRotation = self.getCursor("cursor-rotation.png")
         self.cursorScale = self.getCursor("cursor-scale.png")
@@ -755,14 +755,14 @@ class TDMapTool(QgsMapTool):
 
         if self.drawingMode:
             self.mode = Mode.DRAWING
-            if not self.key & Qt.KeyboardModifier.ControlModifier:
+            if not (self.keyModifier == Qt.KeyboardModifier.ControlModifier):
                 self.pavage.sketch.append([self.currentPointXY])
 
         elif self.pavageVisible:
             snid = self.pavage.getIsHandleMoveNode(xpos, ypos, dist)
             if snid[0] is not None:
                 (self.currentSegId, self.currentNodeId) = snid
-                if self.key & Qt.KeyboardModifier.ControlModifier:
+                if self.keyModifier == Qt.KeyboardModifier.ControlModifier:
                     self.mode = Mode.DEL_NODE
                 else:
                     self.mode = Mode.MOVE_NODE
@@ -833,13 +833,15 @@ class TDMapTool(QgsMapTool):
                     self.setCursor(t)
 
                 elif self.currentNodeId is not None:
-                    if self.key & Qt.KeyboardModifier.ControlModifier:
+                    if self.keyModifier == Qt.KeyboardModifier.ControlModifier:
                         self._canvas.setCursor(QCursor(Qt.CursorShape.ForbiddenCursor))
                     else:
                         self._canvas.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
 
         else:
-            if self.mode == Mode.DRAWING and not (self.key & Qt.KeyboardModifier.ControlModifier):
+            if self.mode == Mode.DRAWING and not (
+                (self.keyModifier == Qt.KeyboardModifier.ControlModifier)
+            ):
                 self.pavage.sketch[-1].append(self.currentPointXY)
                 self.buildSketchRubberBand()
 
@@ -867,7 +869,7 @@ class TDMapTool(QgsMapTool):
     def canvasReleaseEvent(self, event):
         """ """
         try:
-            if self.key & Qt.KeyboardModifier.ControlModifier:
+            if self.keyModifier == Qt.KeyboardModifier.ControlModifier:
                 if self.mode == Mode.DEL_NODE:
                     if self.currentNodeId is not None:
                         self.pavage.removeNode(self.currentSegId, self.currentNodeId)
@@ -881,7 +883,9 @@ class TDMapTool(QgsMapTool):
 
             self.buildSelectionRubberBand()
 
-            if self.mode == Mode.DRAWING and not (self.key & Qt.KeyboardModifier.ControlModifier):
+            if self.mode == Mode.DRAWING and not (
+                (self.keyModifier == Qt.KeyboardModifier.ControlModifier)
+            ):
                 self.buildSketchRubberBand()
         finally:
             self.mousePressed = False
@@ -893,10 +897,10 @@ class TDMapTool(QgsMapTool):
             iface.mapCanvas().waitWhileRendering()
 
     def keyPressEvent(self, e):
-        self.key = e.modifiers()
+        self.keyModifier = e.modifiers()
 
     def keyReleaseEvent(self, e):
-        self.key = e.modifiers()
+        self.keyModifier = e.modifiers()
 
     def buildPavageGeometry(self, geom):
 
