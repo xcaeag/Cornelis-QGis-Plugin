@@ -607,17 +607,18 @@ class Flip(Transformation):
 
 
 class Pattern:
-    typo: Typo
+    cuurentTypo: Typo
     segs: dict
     p0: Node
     p1: Node
     p2: Node
+    typo = {}
 
-    def __init__(self, typo, p0, w):
-        self.typo = typo
+    def __init__(self, typocode, p0, w):
         self.p0 = p0
         self.w = w
-        self.typo = dict(TYPES_PAVAGES[typo])
+        self.currentTypo = typocode
+        self.typo = dict(TYPES_PAVAGES[typocode])
 
         # origin node
         if "p0" not in self.typo["controls"]:
@@ -1267,7 +1268,7 @@ class Pavage(Pattern):
     def getJson(self):
         s = {}
 
-        s["type"] = self.typo.value
+        s["type"] = self.currentTypo.value
         s["p0"] = [self.p0.x(), self.p0.y()]
         s["w"] = self.w
 
