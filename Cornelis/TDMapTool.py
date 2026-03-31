@@ -16,6 +16,7 @@ from qgis.core import (
     QgsProject,
     QgsVectorLayer,
     QgsWkbTypes,
+    QgsMessageLog,
 )
 from qgis.gui import QgsMapTool, QgsRubberBand
 from qgis.PyQt.QtCore import Qt, QMetaType
@@ -411,11 +412,13 @@ class TDMapTool(QgsMapTool):
         iface.statusBarIface().showMessage("{} {} %".format(text, int(100 * percent)))
         QApplication.processEvents()
 
+    def log(self, text, level=Qgis.MessageLevel.Info, duration=5):
+        QgsMessageLog.logMessage(text, "Extensions")
+
     def message(self, text, level=Qgis.MessageLevel.Info, duration=5):
         iface.messageBar().pushMessage(
             self.tr("Tesselation"), text, level=level, duration=duration
         )
-        QApplication.processEvents()
 
     def do(self):
         try:
@@ -451,7 +454,7 @@ class TDMapTool(QgsMapTool):
             self.message(self.tr("Initialization..."))
             newVectorLayers = []
             for layer in layers.values():
-                self.message(f"- {layer.name()}")
+                self.log(f"- {layer.name()}")
 
                 if isinstance(layer, QgsVectorLayer):
                     try:
@@ -461,7 +464,7 @@ class TDMapTool(QgsMapTool):
                         self.message(
                             f"Traitement de la couche {layer.name()} impossible"
                         )
-                        self.message(f"ERR : {str(e)} impossible")
+                        self.log(f"ERR : {str(e)} impossible")
 
             self.showProgress("Cornelis", 0)
             for ilayer, layer in enumerate(newVectorLayers):
@@ -472,7 +475,7 @@ class TDMapTool(QgsMapTool):
                 try:
                     toDelete = []
                     feats = []
-                    self.message(f"- {layer.name()}")
+                    self.log(f"- {layer.name()}")
 
                     for _, f in enumerate(layer.getFeatures()):
                         QApplication.processEvents()
@@ -492,7 +495,7 @@ class TDMapTool(QgsMapTool):
                                 feat.setAttribute(field.name(), f.attribute(atid))
                         feats.append(feat)
 
-                    self.message(f"- {layer.name()} {len(feats)} feats")
+                    self.log(f"- {layer.name()} {len(feats)} feats")
                     pr.addFeatures(feats)
                     pr.deleteFeatures(toDelete)
                 finally:
@@ -705,7 +708,6 @@ class TDMapTool(QgsMapTool):
         return az_new - az_init
 
     def canvasPressEvent(self, event):
-        """ """
         self.pressedPointXY = self.x.toMapCoordinates(event.pos().x(), event.pos().y())
         self.currentPointXY = self.pressedPointXY
         self.previousPointXY = self.pressedPointXY
@@ -749,6 +751,10 @@ class TDMapTool(QgsMapTool):
                     self.currentNodeId = idp
                     self.mode = Mode.MOVE_P
 
+            if self.mode is None and self.pavage.getIsTileMoveAll(xpos, ypos):
+                self.currentNodeId = "p0"
+                self.mode = Mode.MOVE_P
+
     def setCursor(self, t):
         if Movement.MOVE_ALL in t:
             self._canvas.setCursor(QCursor(Qt.CursorShape.OpenHandCursor))
@@ -779,12 +785,11 @@ class TDMapTool(QgsMapTool):
         )
         dx = dy = 0
 
-        self._canvas.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
-
         if self.pavageVisible:
             self.buildCursorRubberBand(self.currentPointXY)
 
         if not self.mousePressed:
+            # mouse button is up
             if self.pavageVisible and not self.drawingMode:
                 idp = self.pavage.getIsHandleP(xpos, ypos, dist)
 
@@ -796,6 +801,7 @@ class TDMapTool(QgsMapTool):
                 if addId[0] is not None:
                     self._canvas.setCursor(QCursor(Qt.CursorShape.CrossCursor))
                 elif idp is not None:
+                    # type de mouvement (curseur) fonction du type de poignée
                     t = self.pavage.getPMouseMovement(idp)
                     self.setCursor(t)
 
@@ -804,8 +810,16 @@ class TDMapTool(QgsMapTool):
                         self._canvas.setCursor(QCursor(Qt.CursorShape.ForbiddenCursor))
                     else:
                         self._canvas.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
+                elif self.pavage.getIsTileMoveAll(xpos, ypos):
+                    self.setCursor([Movement.MOVE_ALL])
+                else:
+                    self._canvas.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
+            else:
+                self._canvas.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
         else:
+            # mouse is pressed
+
             if self.mode == Mode.DRAWING and not (
                 (self.keyModifier == Qt.KeyboardModifier.ControlModifier)
             ):
@@ -823,15 +837,18 @@ class TDMapTool(QgsMapTool):
                 self.buildRubberBand()
 
             elif self.mode == Mode.MOVE_P:
-                dx = self.currentPointXY.x() - self.pressedPointXY.x()
-                dy = self.currentPointXY.y() - self.pressedPointXY.y()
-                alpha = self.deltaRotation(self.pavage.getRotationPointXY())
-                self.pressedPointXY = self.currentPointXY
+                if self.currentPointXY is not None and self.pressedPointXY is not None:
+                    dx = self.currentPointXY.x() - self.pressedPointXY.x()
+                    dy = self.currentPointXY.y() - self.pressedPointXY.y()
+                    alpha = self.deltaRotation(self.pavage.getRotationPointXY())
+                    self.pressedPointXY = self.currentPointXY
 
-                if self.currentNodeId is not None:
-                    self.pavage.moveP(self.currentNodeId, dx, dy, alpha)
+                    if self.currentNodeId is not None:
+                        self.pavage.moveP(self.currentNodeId, dx, dy, alpha)
 
-                self.buildRubberBand()
+                    self.buildRubberBand()
+                else:
+                    self.log(f"?")
 
     def canvasReleaseEvent(self, event):
         """ """

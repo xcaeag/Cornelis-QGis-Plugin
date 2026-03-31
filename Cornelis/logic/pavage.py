@@ -918,6 +918,11 @@ class Pattern:
 
         return (None, None)
 
+    def getIsTileMoveAll(self, x, y):
+        """Test if tile contains point x/y"""
+        geom = self.getTilePolygon()
+        return geom.contains(QgsPointXY(x, y))
+
     def getIsHandleP(self, x, y, dist):
         for k, p in self.controles.items():
             if "mouse" in self.typo["controls"][k]:
@@ -1113,6 +1118,9 @@ class Pavage(Pattern):
         points = []
         pks = []
         for k, n in self.controles.items():
+            if k == "p0":
+                continue
+
             if "mouse" in self.typo["controls"][k]:
                 pks.append(k)
                 points.append(n.pointXY())
