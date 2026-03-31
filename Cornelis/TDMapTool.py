@@ -469,31 +469,34 @@ class TDMapTool(QgsMapTool):
 
                 pr = layer.dataProvider()
                 layer.startEditing()
-                toDelete = []
-                feats = []
-                self.message(f"- {layer.name()}")
-                for _, f in enumerate(layer.getFeatures()):
-                    QApplication.processEvents()
-                    toDelete.append(f.id())
-                    g = f.geometry()
-                    images = self.pavage.getImagesGeomPavage(
-                        g, self.transformations, self.patternPositions
-                    )
-                    newG = QgsGeometry.unaryUnion(images)
-                    # for image in images:
-                    feat = QgsFeature()
-                    feat.setFields(f.fields())
-                    feat.setGeometry(newG)  # or image
-                    for atid in pr.attributeIndexes():
-                        if atid not in pr.pkAttributeIndexes():
-                            field = f.fields().at(atid)
-                            feat.setAttribute(field.name(), f.attribute(atid))
-                    feats.append(feat)
+                try:
+                    toDelete = []
+                    feats = []
+                    self.message(f"- {layer.name()}")
 
-                self.message(f"- {layer.name()} {len(feats)} feats")
-                pr.addFeatures(feats)
-                pr.deleteFeatures(toDelete)
-                layer.commitChanges()
+                    for _, f in enumerate(layer.getFeatures()):
+                        QApplication.processEvents()
+                        toDelete.append(f.id())
+                        g = f.geometry()
+                        images = self.pavage.getImagesGeomPavage(
+                            g, self.transformations, self.patternPositions
+                        )
+                        newG = QgsGeometry.unaryUnion(images)
+
+                        feat = QgsFeature()
+                        feat.setFields(f.fields())
+                        feat.setGeometry(newG)  # or image
+                        for atid in pr.attributeIndexes():
+                            if atid not in pr.pkAttributeIndexes():
+                                field = f.fields().at(atid)
+                                feat.setAttribute(field.name(), f.attribute(atid))
+                        feats.append(feat)
+
+                    self.message(f"- {layer.name()} {len(feats)} feats")
+                    pr.addFeatures(feats)
+                    pr.deleteFeatures(toDelete)
+                finally:
+                    layer.commitChanges()
 
             # Add Sketch layer
             if self.pavage.hasSketch():
