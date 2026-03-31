@@ -114,7 +114,7 @@ class TDMapTool(QgsMapTool):
         self.rbSampleLine = QgsRubberBand(
             self._canvas, QgsWkbTypes.GeometryType.LineGeometry
         )
-        self.rbSampleLine.setStrokeColor(QColor(50, 50, 120, 200))
+        self.rbSampleLine.setStrokeColor(QColor(50, 120, 50, 200))
         self.rbSampleLine.setWidth(3)
 
         # Croquis
