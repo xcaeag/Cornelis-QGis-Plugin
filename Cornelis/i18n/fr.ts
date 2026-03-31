@@ -23,7 +23,7 @@ transform(&lt;br&gt;
 )&lt;br&gt;
 ...
         </source>
-        <translation type="unfinished">&lt;h1&gt;cornelis&lt;/h1&gt;
+        <translation>&lt;h1&gt;cornelis&lt;/h1&gt;
 Expression ajoutée par l&apos;extension Cornelis.&lt;br&gt;
 &lt;br&gt;
 Pave le plan en dupliquant les géométries contenues dans la tuile de base, selon les règles de transformation du pavage courant.
