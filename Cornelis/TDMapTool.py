@@ -18,7 +18,7 @@ from qgis.core import (
     QgsWkbTypes,
 )
 from qgis.gui import QgsMapTool, QgsRubberBand
-from qgis.PyQt.QtCore import Qt, QVariant
+from qgis.PyQt.QtCore import Qt, QMetaType
 from qgis.PyQt.QtGui import QColor, QCursor, QPixmap
 from qgis.PyQt.QtWidgets import QApplication, QMessageBox
 from qgis.utils import iface
@@ -288,13 +288,13 @@ class TDMapTool(QgsMapTool):
 
         for fk, fieldef in attrs.items():
             if fieldef["fieldtype"] == "int":
-                field = QgsField(fk, QVariant.Int, fk, 4, 0)
+                field = QgsField(fk, QMetaType.Type.Int, fk, 4, 0)
                 fields.append(field)
             if fieldef["fieldtype"] == "double":
-                field = QgsField(fk, QVariant.Double, fk, 4, 2)
+                field = QgsField(fk, QMetaType.Type.Double, fk, 4, 2)
                 fields.append(field)
             if fieldef["fieldtype"] == "str":
-                field = QgsField(fk, QVariant.String)
+                field = QgsField(fk, QMetaType.Type.QString)
                 fields.append(field)
 
         vl = QgsVectorLayer("{}?crs={}".format(typ, crs.authid()), name, "memory")
@@ -386,22 +386,16 @@ class TDMapTool(QgsMapTool):
         newLayer = layer.materialize(QgsFeatureRequest().setFilterFids(ids))
 
         # clip geometry
-        newLayer.startEditing()
-        try:
-            for f in newLayer.getFeatures():
-                geom = f.geometry()
-                if transformationRequired:
-                    geom.transform(
-                        QgsCoordinateTransform(
-                            layer_crs, mask_crs, QgsProject.instance()
-                        )
-                    )
-                geom = geom.intersection(gmask)
+        changes = {}
+        for f in newLayer.getFeatures():
+            geom = f.geometry()
+            if transformationRequired:
+                geom.transform(
+                    QgsCoordinateTransform(layer_crs, mask_crs, QgsProject.instance())
+                )
+            changes[f.id()] = geom.intersection(gmask)
 
-                f.setGeometry(geom)
-                newLayer.updateFeature(f)
-        finally:
-            newLayer.commitChanges()
+        newLayer.dataProvider().changeGeometryValues(changes)
 
         newLayer.setCrs(mask_crs)
 
@@ -431,37 +425,6 @@ class TDMapTool(QgsMapTool):
             group = QgsProject.instance().layerTreeRoot().findGroup(gname)
             if group is None:
                 group = QgsProject.instance().layerTreeRoot().insertGroup(0, gname)
-
-            # Add Points layer ------------------
-            """points, pks = self.pavage.getAllControlsPointsXY()
-            attrs = {"name": {"fieldtype": "str", "values": pks}}
-
-            mouses, types = [], []
-            for k in pks:
-                mouse = ""
-                typ = ""
-                if k in self.pavage.typo["controls"]:
-                    nodedict = self.pavage.typo["controls"][k]
-                    if "mouse" in nodedict:
-                        mouse = nodedict["mouse"]
-                    if "visible" in nodedict:
-                        typ = nodedict["visible"]
-
-                mouses.append(mouse)
-                types.append(typ)
-
-            attrs["mouse"] = {"fieldtype": "str", "values": mouses}
-            attrs["type"] = {"fieldtype": "str", "values": types}
-
-            layerPoints = self.layerFromGeoms(
-                [QgsGeometry.fromPointXY(p) for p in points],
-                attrs=attrs,
-                name=self.tr("Points"),
-                typ="Point",
-            )
-            self.addLayer(group, layerPoints, visible=False)
-            layerPoints.loadNamedStyle(str(DIR_PLUGIN_ROOT / "resources/node.qml"))
-            # / Add Points layer"""
 
             # Tile Geom
             tileGeom = self.pavage.getTilePolygon()
@@ -494,10 +457,11 @@ class TDMapTool(QgsMapTool):
                     try:
                         newV = self.prepareNewVectorLayer(group, layer, layerMask)
                         newVectorLayers.append(newV)
-                    except Exception:
+                    except Exception as e:
                         self.message(
                             f"Traitement de la couche {layer.name()} impossible"
                         )
+                        self.message(f"ERR : {str(e)} impossible")
 
             self.showProgress("Cornelis", 0)
             for ilayer, layer in enumerate(newVectorLayers):
