@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="fr" sourcelanguage="en">
+<TS version="2.1" language="fr_FR" sourcelanguage="en_US">
 <context>
     <name>CornelisGeometryFunction</name>
     <message>
@@ -23,7 +23,7 @@ transform(&lt;br&gt;
 )&lt;br&gt;
 ...
         </source>
-        <translation>&lt;h1&gt;cornelis&lt;/h1&gt;
+        <translation type="unfinished">&lt;h1&gt;cornelis&lt;/h1&gt;
 Expression ajoutée par l&apos;extension Cornelis.&lt;br&gt;
 &lt;br&gt;
 Pave le plan en dupliquant les géométries contenues dans la tuile de base, selon les règles de transformation du pavage courant.
@@ -38,7 +38,7 @@ ou si une transformation est nécessaire : (ici 2154 correspond à la projection
 transform(&lt;br&gt;
 	cornelis(transform($geometry, &apos;EPSG:4326&apos;, &apos;EPSG:2154&apos;)),&lt;br&gt;
 	&apos;EPSG:2154&apos;,&apos;EPSG:4326&apos;&lt;br&gt;
-)</translation>
+)&lt;br&gt;</translation>
     </message>
 </context>
 <context>
@@ -100,8 +100,8 @@ transform(&lt;br&gt;
     </message>
     <message>
         <location filename="../cornelisPlugin.py" line="212"/>
-        <source>Draw a sketch</source>
-        <translation>Dessiner</translation>
+        <source>Draw a sketch (+ctrl to erase)</source>
+        <translation>Dessiner (+ctrl pour effacer)</translation>
     </message>
     <message>
         <location filename="../cornelisPlugin.py" line="299"/>

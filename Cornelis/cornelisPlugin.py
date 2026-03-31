@@ -96,7 +96,7 @@ class CornelisPlugin:
         self.canvas = iface.mapCanvas()
         # initialize locale
         locale = QgsSettings().value("locale/userLocale", QLocale().name())
-        locale_path = str(DIR_PLUGIN_ROOT / "i18n" / "{}.qm".format(locale))
+        locale_path = str(DIR_PLUGIN_ROOT / "i18n" / "{}.qm".format(locale[0:2]))
 
         self.typo = Typo.T1a
 
@@ -206,7 +206,9 @@ class CornelisPlugin:
             "source",
             iface.mainWindow(),
         )
-        self.actions[self.ACTION_DRAW].setToolTip(self.tr("Draw a sketch"))
+        self.actions[self.ACTION_DRAW].setToolTip(
+            self.tr("Draw a sketch (+ctrl to erase)")
+        )
         self.actions[self.ACTION_DRAW].setCheckable(True)
         self.actions[self.ACTION_DRAW].setChecked(False)
         self.actions[self.ACTION_DRAW].triggered.connect(lambda: self.draw())
