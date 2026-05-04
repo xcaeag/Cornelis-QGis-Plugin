@@ -11,15 +11,15 @@ def getRecursiveLayers(layers: dict, node, checkedOnly: bool = True):
     :return: None (layers updated)
     """
     for c in node.children():
-        if isinstance(c, QgsLayerTreeLayer) and (
-            isinstance(c.layer(), QgsVectorLayer)
-            or isinstance(c.layer(), QgsRasterLayer)
-        ):
-            if not checkedOnly or (checkedOnly and c.itemVisibilityChecked()):
+        if not checkedOnly or (checkedOnly and c.itemVisibilityChecked()):
+            if isinstance(c, QgsLayerTreeLayer) and (
+                isinstance(c.layer(), QgsVectorLayer)
+                or isinstance(c.layer(), QgsRasterLayer)
+            ):
                 layers[c.layer().id()] = c.layer()
 
-        else:
-            getRecursiveLayers(layers, c, checkedOnly)
+            else:
+                getRecursiveLayers(layers, c, checkedOnly)
 
 
 def getLayers(checkedOnly: bool = True) -> dict:
