@@ -307,17 +307,21 @@ class TDMapTool(QgsMapTool):
 
         for i, geom in enumerate(geoms):
             feat = QgsFeature()
-            feat.setGeometry(geom)
+            try:
+                feat.setGeometry(geom)
 
-            if len(attrs) > 0:
-                feat.setFields(fields)
-                for fk, fieldef in attrs.items():
-                    if "values" in fieldef:
-                        feat.setAttribute(fk, fieldef["values"][i])
-                    if "value" in fieldef:
-                        feat.setAttribute(fk, fieldef["value"])
+                if len(attrs) > 0:
+                    feat.setFields(fields)
+                    for fk, fieldef in attrs.items():
+                        if "values" in fieldef:
+                            feat.setAttribute(fk, fieldef["values"][i])
+                        if "value" in fieldef:
+                            feat.setAttribute(fk, fieldef["value"])
 
-            pr.addFeature(feat)
+                pr.addFeature(feat)
+            except Exception as e:
+                self.log(f";-(   {e}")
+                continue
 
         vl.commitChanges()
 
@@ -397,15 +401,21 @@ class TDMapTool(QgsMapTool):
 
         # clip geometry
         changes = {}
+        removes = []
         for f in newLayer.getFeatures():
             geom = f.geometry()
             if transformationRequired:
                 geom.transform(
                     QgsCoordinateTransform(layer_crs, mask_crs, QgsProject.instance())
                 )
-            changes[f.id()] = geom.intersection(gmask)
+            newg = geom.intersection(gmask)
+            if newg.type() == geom.type():
+                changes[f.id()] = newg
+            else:
+                removes.append(f.id())
 
         newLayer.dataProvider().changeGeometryValues(changes)
+        newLayer.dataProvider().deleteFeatures(removes)
 
         newLayer.setCrs(mask_crs)
 
@@ -497,42 +507,29 @@ class TDMapTool(QgsMapTool):
                         flips = list(itertools.chain(*flips))
                         for image, rot, flip in zip(images, rotations, flips):
                             feat = QgsFeature()
-                            feat.setGeometry(image)  # or image
-
-                            fields = f.fields()
-                            feat.setFields(fields)
-                            for atid in pr.attributeIndexes():
-                                if atid not in pr.pkAttributeIndexes():
-                                    field = f.fields().at(atid)
-                                    if field.name() not in (
-                                        "cornelis_rotation",
-                                        "cornelis_flip",
-                                    ):
-                                        feat.setAttribute(
-                                            field.name(), f.attribute(atid)
-                                        )
-
                             try:
+                                feat.setGeometry(image)  # or image
+
+                                fields = f.fields()
+                                feat.setFields(fields)
+                                for atid in pr.attributeIndexes():
+                                    if atid not in pr.pkAttributeIndexes():
+                                        field = f.fields().at(atid)
+                                        if field.name() not in (
+                                            "cornelis_rotation",
+                                            "cornelis_flip",
+                                        ):
+                                            feat.setAttribute(
+                                                field.name(), f.attribute(atid)
+                                            )
+
                                 feat.setAttribute("cornelis_rotation", rot)
-                            except:
-                                pass
-
-                            try:
                                 feat.setAttribute("cornelis_flip", flip)
-                            except:
-                                pass
 
-                            feats.append(feat)
-
-                        """newG = QgsGeometry.unaryUnion(images)
-                        feat = QgsFeature()
-                        feat.setFields(f.fields())
-                        feat.setGeometry(newG)  # or image
-                        for atid in pr.attributeIndexes():
-                            if atid not in pr.pkAttributeIndexes():
-                                field = f.fields().at(atid)
-                                feat.setAttribute(field.name(), f.attribute(atid))
-                        feats.append(feat)"""
+                                feats.append(feat)
+                            except Exception as e:
+                                self.log(f";-(   {e}")
+                                continue
 
                     self.log(f"- {layer.name()} {len(feats)} feats")
                     pr.addFeatures(feats)
