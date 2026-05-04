@@ -60,7 +60,8 @@ Elles sont alors transformées pour couvrir la zone visible et paver le plan.
 
 **Les couches produites**
 
-- Autant de copies que de couches vectorielles affichées.
+- Autant de copies que de couches vectorielles affichées. Chaque entité (clip de la tuile de base) est dupliquée en autant de tuiles couvrant le canevas. \
+Deux champs additionnels (cornelis_rotation, cornelis_flip) donne la valeur de rotation (en degré) appliquée à la géométrie, et si l'objet est une réflexion (flip = -1). Permet d'ajuster les styles des pictogrammes ou étiquettes.
 
 - Une couche contenant la tuile de base
 
