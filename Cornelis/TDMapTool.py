@@ -1,4 +1,5 @@
 import json
+import itertools
 from enum import Enum
 
 from qgis.core import (
@@ -386,6 +387,14 @@ class TDMapTool(QgsMapTool):
 
         newLayer = layer.materialize(QgsFeatureRequest().setFilterFids(ids))
 
+        # Add rotation and flip fields
+        fields_to_add = [
+            QgsField("cornelis_rotation", QMetaType.Type.Int),
+            QgsField("cornelis_flip", QMetaType.Type.Int),
+        ]
+        newLayer.dataProvider().addAttributes(fields_to_add)
+        newLayer.updateFields()
+
         # clip geometry
         changes = {}
         for f in newLayer.getFeatures():
@@ -481,11 +490,41 @@ class TDMapTool(QgsMapTool):
                         QApplication.processEvents()
                         toDelete.append(f.id())
                         g = f.geometry()
-                        images = self.pavage.getImagesGeomPavage(
+                        images, rotations, flips = self.pavage.getImagesGeomPavage(
                             g, self.transformations, self.patternPositions
                         )
-                        newG = QgsGeometry.unaryUnion(images)
+                        rotations = list(itertools.chain(*rotations))
+                        flips = list(itertools.chain(*flips))
+                        for image, rot, flip in zip(images, rotations, flips):
+                            feat = QgsFeature()
+                            feat.setGeometry(image)  # or image
 
+                            fields = f.fields()
+                            feat.setFields(fields)
+                            for atid in pr.attributeIndexes():
+                                if atid not in pr.pkAttributeIndexes():
+                                    field = f.fields().at(atid)
+                                    if field.name() not in (
+                                        "cornelis_rotation",
+                                        "cornelis_flip",
+                                    ):
+                                        feat.setAttribute(
+                                            field.name(), f.attribute(atid)
+                                        )
+
+                            try:
+                                feat.setAttribute("cornelis_rotation", rot)
+                            except:
+                                pass
+
+                            try:
+                                feat.setAttribute("cornelis_flip", flip)
+                            except:
+                                pass
+
+                            feats.append(feat)
+
+                        """newG = QgsGeometry.unaryUnion(images)
                         feat = QgsFeature()
                         feat.setFields(f.fields())
                         feat.setGeometry(newG)  # or image
@@ -493,7 +532,7 @@ class TDMapTool(QgsMapTool):
                             if atid not in pr.pkAttributeIndexes():
                                 field = f.fields().at(atid)
                                 feat.setAttribute(field.name(), f.attribute(atid))
-                        feats.append(feat)
+                        feats.append(feat)"""
 
                     self.log(f"- {layer.name()} {len(feats)} feats")
                     pr.addFeatures(feats)
@@ -504,7 +543,7 @@ class TDMapTool(QgsMapTool):
             # Add Sketch layer
             if self.pavage.hasSketch():
                 geom = self.pavage.getSketchGeom()
-                images = self.pavage.getImagesGeomPavage(
+                images, rotations, flips = self.pavage.getImagesGeomPavage(
                     geom, self.transformations, self.patternPositions
                 )
 
@@ -605,7 +644,7 @@ class TDMapTool(QgsMapTool):
                 if len(geoms) > 0:
                     images = []
                     for g in geoms:
-                        images = images + self.pavage.getImagesGeomPavage(
+                        images, _, _ = images + self.pavage.getImagesGeomPavage(
                             g, self.transformations, self.patternPositions
                         )
                     rbSample.setToGeometry(images[0])
@@ -615,7 +654,7 @@ class TDMapTool(QgsMapTool):
     def buildCursorRubberBand(self, ptXY):
         geom = QgsGeometry.fromPointXY(ptXY)
 
-        images = self.pavage.getImagesGeomPavage(
+        images, _, _ = self.pavage.getImagesGeomPavage(
             geom, self.transformations, self.patternPositions
         )
         if len(images) > 1:
@@ -640,7 +679,7 @@ class TDMapTool(QgsMapTool):
 
         self.rbSketch.setToGeometry(geom)
 
-        images = self.pavage.getImagesGeomPavage(
+        images, _, _ = self.pavage.getImagesGeomPavage(
             geom, self.transformations, self.patternPositions
         )
         if len(images) > 0:
@@ -894,7 +933,7 @@ class TDMapTool(QgsMapTool):
             tileGeom = globals()["globalPavage"].getTilePolygon()
 
             geom = geom.intersection(tileGeom)
-            geoms = globals()["globalPavage"].getImagesGeomPavage(
+            geoms, _, _ = globals()["globalPavage"].getImagesGeomPavage(
                 geom, self.transformations, self.patternPositions
             )
             newGeom = geoms[0]

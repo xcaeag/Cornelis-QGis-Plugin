@@ -780,11 +780,8 @@ class Pattern:
         line = self.getTileLineString(tileSegs)
         r = [line]
 
-        rotations = [0]
-        flips = [1]
-
-        rotation = 0
-        flip = 1
+        rotations, flips = [0], [1]
+        rotation, flip = 0, 1
 
         newTile = Transformation.copySeg(line)
         for tileTransforms in self.typo["pattern"].values():
@@ -828,10 +825,15 @@ class Pattern:
 
         r = [geom]
 
+        rotations, flips = [0], [1]
+        rotation, flip = 0, 1
+
         newGeom = Transformation.copyGeom(geom)
         for tileTransforms in self.typo["pattern"].values():
             if patternFromSrc:
                 newGeom = Transformation.copyGeom(geom)
+                rotation = 0
+                flip = 1
 
             for tileTransform in tileTransforms.split(";"):
                 t = self.getTransformation(tileTransform)
@@ -840,9 +842,14 @@ class Pattern:
 
                 newGeom = t.transformGeom(newGeom, copy=False)
 
+                rotation = (rotation + t.getValueRotation()) % 360
+                flip = flip * t.getValueFlip()
+
+            rotations.append(rotation)
+            flips.append(flip)
             r.append(Transformation.copyGeom(newGeom))
 
-        return r
+        return r, rotations, flips
 
     def getImagesGeomPavage(
         self, geom: QgsGeometry, pavageTransfos, patternPositions
@@ -856,9 +863,12 @@ class Pattern:
             List[QgsGeometry]: _description_
         """
         r = []
-        patternGeoms = self.getImagesGeomPattern(geom)
+        protations, pflips = [], []
+        patternGeoms, rotations, flips = self.getImagesGeomPattern(geom)
 
         for posx, posy in patternPositions:
+            protations.append(rotations)
+            pflips.append(flips)
             newPattern = Transformation.copyGeoms(patternGeoms)
             for trsf in pavageTransfos["tx"]:
                 tx = trsf * posx
@@ -870,7 +880,7 @@ class Pattern:
             for g in newPattern:
                 r.append(g)
 
-        return r
+        return r, protations, pflips
 
     def getOtherNodeXY(self):
         pts = {}
