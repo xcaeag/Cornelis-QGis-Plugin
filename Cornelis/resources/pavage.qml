@@ -868,7 +868,7 @@
       </callout>
     </settings>
   </labeling>
-  <blendMode>0</blendMode>
+  <blendMode>6</blendMode>
   <featureBlendMode>0</featureBlendMode>
   <layerOpacity>1</layerOpacity>
   <layerGeometryType>2</layerGeometryType>

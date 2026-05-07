@@ -22,7 +22,7 @@
             <Option name="dash_pattern_offset_unit" value="MM" type="QString"/>
             <Option name="draw_inside_polygon" value="0" type="QString"/>
             <Option name="joinstyle" value="round" type="QString"/>
-            <Option name="line_color" value="164,89,67,198,hsv:0.03875,0.59243152513923858,0.6424200808728161,0.77647058823529413" type="QString"/>
+            <Option name="line_color" value="151,94,77,180,hsv:0.03875,0.48958571755550467,0.59205004959182117,0.70525673304341197" type="QString"/>
             <Option name="line_style" value="solid" type="QString"/>
             <Option name="line_width" value="0.5" type="QString"/>
             <Option name="line_width_unit" value="MM" type="QString"/>
@@ -114,6 +114,6 @@
   </selection>
   <blendMode>6</blendMode>
   <featureBlendMode>0</featureBlendMode>
-  <layerOpacity>1</layerOpacity>
+  <layerOpacity>0.8</layerOpacity>
   <layerGeometryType>1</layerGeometryType>
 </qgis>

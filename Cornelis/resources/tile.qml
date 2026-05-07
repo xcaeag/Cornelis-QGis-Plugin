@@ -13,14 +13,14 @@
         <layer id="{114e57bf-b1f6-47ed-812b-de687b82e21a}" locked="0" class="SimpleFill" pass="0" enabled="1">
           <Option type="Map">
             <Option name="border_width_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString"/>
-            <Option name="color" value="250,158,241,255,rgb:0.98039215686274506,0.61960784313725492,0.94509803921568625,1" type="QString"/>
+            <Option name="color" value="250,158,241,130,rgb:0.98039215686274506,0.61960784313725492,0.94509803921568625,0.50962081330586706" type="QString"/>
             <Option name="joinstyle" value="bevel" type="QString"/>
             <Option name="offset" value="0,0" type="QString"/>
             <Option name="offset_map_unit_scale" value="3x:0,0,0,0,0,0" type="QString"/>
             <Option name="offset_unit" value="MM" type="QString"/>
             <Option name="outline_color" value="35,35,35,255,rgb:0.13725490196078433,0.13725490196078433,0.13725490196078433,1" type="QString"/>
             <Option name="outline_style" value="solid" type="QString"/>
-            <Option name="outline_width" value="0.66" type="QString"/>
+            <Option name="outline_width" value="2" type="QString"/>
             <Option name="outline_width_unit" value="MM" type="QString"/>
             <Option name="style" value="solid" type="QString"/>
           </Option>
@@ -80,8 +80,8 @@
       </symbol>
     </selectionSymbol>
   </selection>
-  <blendMode>0</blendMode>
+  <blendMode>8</blendMode>
   <featureBlendMode>0</featureBlendMode>
-  <layerOpacity>0.644</layerOpacity>
+  <layerOpacity>0.84</layerOpacity>
   <layerGeometryType>2</layerGeometryType>
 </qgis>
