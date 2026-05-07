@@ -540,21 +540,6 @@ class TDMapTool(QgsMapTool):
                     layer.commitChanges()
                     layer.triggerRepaint()
 
-            # Add Sketch layer
-            if self.pavage.hasSketch():
-                geom = self.pavage.getSketchGeom()
-                images, rotations, flips = self.pavage.getImagesGeomPavage(
-                    geom, self.transformations, self.patternPositions
-                )
-
-                layersketch = self.layerFromGeoms(
-                    images, name=self.tr("Sketch") + f" {pname}", typ="Linestring"
-                )
-                self.addLayer(group, layersketch, visible=False)
-                layersketch.loadNamedStyle(
-                    str(DIR_PLUGIN_ROOT / "resources/sketch.qml")
-                )
-
             # Add pattern layer
             if len(patternGeoms) > 1:
                 layerPattern = self.layerFromGeoms(
@@ -580,6 +565,21 @@ class TDMapTool(QgsMapTool):
             )
             self.addLayer(group, layerPavage, visible=False)
             layerPavage.loadNamedStyle(str(DIR_PLUGIN_ROOT / "resources/pavage.qml"))
+
+            # Add Sketch layer
+            if self.pavage.hasSketch():
+                geom = self.pavage.getSketchGeom()
+                images, rotations, flips = self.pavage.getImagesGeomPavage(
+                    geom, self.transformations, self.patternPositions
+                )
+
+                layersketch = self.layerFromGeoms(
+                    images, name=self.tr("Sketch") + f" {pname}", typ="Linestring"
+                )
+                self.addLayer(group, layersketch, visible=False)
+                layersketch.loadNamedStyle(
+                    str(DIR_PLUGIN_ROOT / "resources/sketch.qml")
+                )
 
             self.message(self.tr("End !"), level=Qgis.MessageLevel.Success)
 
