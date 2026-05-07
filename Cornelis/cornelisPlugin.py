@@ -362,7 +362,6 @@ class CornelisPlugin:
                 level=Qgis.MessageLevel.Warning,
                 duration=5,
             )
-            raise e
 
     def buildPavageGeometry(self, feature, geom=None):
         return self.mt.buildPavageGeometry(geom)

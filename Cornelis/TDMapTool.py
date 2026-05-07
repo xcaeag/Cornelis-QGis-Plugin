@@ -302,28 +302,30 @@ class TDMapTool(QgsMapTool):
         vl = QgsVectorLayer("{}?crs={}".format(typ, crs.authid()), name, "memory")
         pr = vl.dataProvider()
         vl.startEditing()
+        try:
 
-        pr.addAttributes(fields)
+            pr.addAttributes(fields)
 
-        for i, geom in enumerate(geoms):
-            feat = QgsFeature()
-            try:
-                feat.setGeometry(geom)
+            for i, geom in enumerate(geoms):
+                feat = QgsFeature()
+                try:
+                    feat.setGeometry(geom)
 
-                if len(attrs) > 0:
-                    feat.setFields(fields)
-                    for fk, fieldef in attrs.items():
-                        if "values" in fieldef:
-                            feat.setAttribute(fk, fieldef["values"][i])
-                        if "value" in fieldef:
-                            feat.setAttribute(fk, fieldef["value"])
+                    if len(attrs) > 0:
+                        feat.setFields(fields)
+                        for fk, fieldef in attrs.items():
+                            if "values" in fieldef:
+                                feat.setAttribute(fk, fieldef["values"][i])
+                            if "value" in fieldef:
+                                feat.setAttribute(fk, fieldef["value"])
 
-                pr.addFeature(feat)
-            except Exception as e:
-                self.log(f";-(   {e}")
-                continue
+                    pr.addFeature(feat)
+                except Exception as e:
+                    self.log(f";-(   {e}")
+                    continue
 
-        vl.commitChanges()
+        finally:
+            vl.commitChanges()
 
         return vl
 
@@ -537,6 +539,8 @@ class TDMapTool(QgsMapTool):
                 finally:
                     layer.commitChanges()
 
+            layer.triggerRepaint()
+
             # Add Sketch layer
             if self.pavage.hasSketch():
                 geom = self.pavage.getSketchGeom()
@@ -582,11 +586,10 @@ class TDMapTool(QgsMapTool):
 
         except Exception as e:
             self.message(self.tr("End !"), level=Qgis.MessageLevel.Critical)
-            raise e
 
         finally:
             iface.statusBarIface().clearMessage()
-            iface.mapCanvas().refreshAllLayers()
+            # iface.mapCanvas().refreshAllLayers()
             iface.mapCanvas().waitWhileRendering()
             QgsApplication.restoreOverrideCursor()
 
@@ -641,9 +644,10 @@ class TDMapTool(QgsMapTool):
                 if len(geoms) > 0:
                     images = []
                     for g in geoms:
-                        images, _, _ = images + self.pavage.getImagesGeomPavage(
+                        newimages, _, _ = self.pavage.getImagesGeomPavage(
                             g, self.transformations, self.patternPositions
                         )
+                        images = images + newimages
                     rbSample.setToGeometry(images[0])
                     for g in images[1:]:
                         rbSample.addGeometry(g)
