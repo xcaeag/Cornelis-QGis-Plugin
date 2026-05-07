@@ -433,7 +433,7 @@ class TDMapTool(QgsMapTool):
         iface.statusBarIface().showMessage("{} {} %".format(text, int(100 * percent)))
         QApplication.processEvents()
 
-    def log(self, text, level=Qgis.MessageLevel.Info, duration=5):
+    def log(self, text):
         QgsMessageLog.logMessage(text, "Extensions")
 
     def message(self, text, level=Qgis.MessageLevel.Info, duration=5):
@@ -538,8 +538,7 @@ class TDMapTool(QgsMapTool):
                     pr.deleteFeatures(toDelete)
                 finally:
                     layer.commitChanges()
-
-            layer.triggerRepaint()
+                    layer.triggerRepaint()
 
             # Add Sketch layer
             if self.pavage.hasSketch():
@@ -586,6 +585,7 @@ class TDMapTool(QgsMapTool):
 
         except Exception as e:
             self.message(self.tr("End !"), level=Qgis.MessageLevel.Critical)
+            self.log(f"{e}")
 
         finally:
             iface.statusBarIface().clearMessage()
