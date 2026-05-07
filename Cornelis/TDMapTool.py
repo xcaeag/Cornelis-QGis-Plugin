@@ -545,12 +545,20 @@ class TDMapTool(QgsMapTool):
                 layer.commitChanges()
 
     def doRasterLayers(self, newRasterLayers):
+        """Traite les couches raster
+
+        Args:
+            newRasterLayers (QgsRasterLayer[]): liste des couches raster visibles
+        """
+
         self.showProgress("Cornelis", 0)
         for ilayer, layer in enumerate(newRasterLayers):
             self.showProgress("Cornelis", ilayer // len(newRasterLayers))
 
             # self.pavage.getImagesGeomPavage
-            # self.pavage.drawRasterPavage(layer)
+            self.pavage.drawRasterPavage(
+                layer, self.transformations, self.patternPositions
+            )
 
     def do(self):
         try:

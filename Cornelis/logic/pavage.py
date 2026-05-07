@@ -3,8 +3,10 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import List
+from osgeo import gdal
+import numpy as np
 
-from qgis.core import QgsGeometry, QgsMultiPoint, QgsPoint, QgsPointXY
+from qgis.core import QgsGeometry, QgsMultiPoint, QgsPoint, QgsPointXY, QgsMessageLog
 
 from .typo import TYPES_PAVAGES, Typo
 
@@ -366,14 +368,17 @@ class Translation(Transformation):
         if p0 is not None:
             self.p0 = p0
             self.p1 = p1
-        if dx is not None:
+        if dx is None:
+            self.dx = self.p1.x - self.p0.x
+            self.dy = self.p1.y - self.p0.y
+        else:
             self.p0 = None
             self.p1 = None
             self.dx = dx
             self.dy = dy
 
     def __str__(self):
-        return "Translation"
+        return f"T({self.dx}, {self.dy})"
 
     def getValueRotation(self):
         return 0
@@ -417,6 +422,7 @@ class Translation(Transformation):
         if self.p0 is not None:
             self.dx = self.p1.x - self.p0.x
             self.dy = self.p1.y - self.p0.y
+
         return Translation(dx=self.dx + o.dx, dy=self.dy + o.dy)
 
     def __sub__(self, o):
@@ -435,6 +441,7 @@ class Translation(Transformation):
         if self.p0 is not None:
             self.dx = self.p1.x - self.p0.x
             self.dy = self.p1.y - self.p0.y
+
         return Translation(dx=self.dx * o, dy=self.dy * o)
 
 
@@ -805,7 +812,17 @@ class Pattern:
 
         return r, rotations, flips
 
+    def gstr(self, g):
+        r = ""
+        for v in g.vertices():
+            x = int(v.x())
+            y = int(v.y())
+            r = r + f" ({x},{y})"
+
+        return r
+
     def getImagesGeomPattern(self, geom: QgsGeometry) -> List[QgsGeometry]:
+        QgsMessageLog.logMessage("getImagesGeomPattern", "Extensions")
         """Projette l'image d'une géométrie quelconque sur les tuiles du pattern de base
 
         Args:
@@ -829,6 +846,9 @@ class Pattern:
         rotation, flip = 0, 1
 
         newGeom = Transformation.copyGeom(geom)
+        gstr = self.gstr(newGeom)
+        QgsMessageLog.logMessage(f"{gstr}", "Extensions")
+
         for tileTransforms in self.typo["pattern"].values():
             if patternFromSrc:
                 newGeom = Transformation.copyGeom(geom)
@@ -841,6 +861,9 @@ class Pattern:
                     raise Exception(f"invalid transformation {tileTransform}")
 
                 newGeom = t.transformGeom(newGeom, copy=False)
+                QgsMessageLog.logMessage(f"{t}", "Extensions")
+                gstr = self.gstr(newGeom)
+                QgsMessageLog.logMessage(f"new {gstr}", "Extensions")
 
                 rotation = (rotation + t.getValueRotation()) % 360
                 flip = flip * t.getValueFlip()
@@ -866,21 +889,51 @@ class Pattern:
         protations, pflips = [], []
         patternGeoms, rotations, flips = self.getImagesGeomPattern(geom)
 
-        for posx, posy in patternPositions:
+        # QgsMessageLog.logMessage(f"{patternPositions}", "Extensions")
+
+        for dx, dy in patternPositions:
+            # QgsMessageLog.logMessage(f"-- px {dx} py {dy}", "Extensions")
             protations.append(rotations)
             pflips.append(flips)
             newPattern = Transformation.copyGeoms(patternGeoms)
+
+            transfo = None
             for trsf in pavageTransfos["tx"]:
-                tx = trsf * posx
-                newPattern = tx.transformGeoms(newPattern, copy=False)
+                if transfo is None:
+                    transfo = trsf * dx
+                else:
+                    transfo = transfo + trsf * dx
+
+                # QgsMessageLog.logMessage(f"{transfo}", "Extensions")
+
             for trsf in pavageTransfos["ty"]:
-                ty = trsf * posy
-                newPattern = ty.transformGeoms(newPattern, copy=False)
+                if transfo is None:
+                    transfo = trsf * dy
+                else:
+                    transfo = transfo + trsf * dy
+
+            newPattern = transfo.transformGeoms(newPattern, copy=False)
 
             for g in newPattern:
                 r.append(g)
 
         return r, protations, pflips
+
+    def drawRasterPavage(self, layer, pavageTransfos, patternPositions):
+        ds = gdal.Open(layer.dataProvider().dataSourceUri())
+        npa = ds.ReadAsArray()
+        npa = npa.astype(np.float32)
+
+        # pattern, _, _ = self.getPatternLinestrings()
+        """patternBorder = self.drawRasterPattern(npa)
+
+        for posx, posy in patternPositions:
+            for trsf in pavageTransfos["tx"]:
+                tx = trsf * posx
+                tx.copyRasterPolygon(patternBorder, npa)
+            for trsf in pavageTransfos["ty"]:
+                ty = trsf * posy
+                newPattern = ty.transformGeoms(newPattern, copy=False)"""
 
     def getOtherNodeXY(self):
         pts = {}
