@@ -582,6 +582,11 @@ class TDMapTool(QgsMapTool):
 
             # pavage geoms limit to extent
             extent = self._canvas.extent()
+            pavageGeoms, pavageTransfos, positions, pavageAttr = (
+                self.pavage.getPavagePolygons(extent)
+            )
+            self.transformations = pavageTransfos
+            self.patternPositions = positions
 
             # prepare vector layers
             layers = getLayers()
@@ -592,55 +597,6 @@ class TDMapTool(QgsMapTool):
             # processes the new layers
             self.doVectorLayers(newVectorLayers)
             self.doRasterLayers(newRasterLayers)
-
-                pr = layer.dataProvider()
-                layer.startEditing()
-                try:
-                    toDelete = []
-                    feats = []
-                    self.log(f"- {layer.name()}")
-
-                    for _, f in enumerate(layer.getFeatures()):
-                        QApplication.processEvents()
-                        toDelete.append(f.id())
-                        g = f.geometry()
-                        images, rotations, flips = self.pavage.getImagesGeomPavage(
-                            g, self.transformations, self.patternPositions
-                        )
-                        rotations = list(itertools.chain(*rotations))
-                        flips = list(itertools.chain(*flips))
-                        for image, rot, flip in zip(images, rotations, flips):
-                            feat = QgsFeature()
-                            try:
-                                feat.setGeometry(image)  # or image
-
-                                fields = f.fields()
-                                feat.setFields(fields)
-                                for atid in pr.attributeIndexes():
-                                    if atid not in pr.pkAttributeIndexes():
-                                        field = f.fields().at(atid)
-                                        if field.name() not in (
-                                            "cornelis_rotation",
-                                            "cornelis_flip",
-                                        ):
-                                            feat.setAttribute(
-                                                field.name(), f.attribute(atid)
-                                            )
-
-                                feat.setAttribute("cornelis_rotation", rot)
-                                feat.setAttribute("cornelis_flip", flip)
-
-                                feats.append(feat)
-                            except Exception as e:
-                                self.log(f";-(   {e}")
-                                continue
-
-                    self.log(f"- {layer.name()} {len(feats)} feats")
-                    pr.addFeatures(feats)
-                    pr.deleteFeatures(toDelete)
-                finally:
-                    layer.commitChanges()
-                    layer.triggerRepaint()
 
             # Add pattern layer
             # pattern geoms
