@@ -172,3 +172,6 @@ cython_debug/
 
 #
 xc_*.py
+deploy.py
+Cornelis/logic/test_Pavage.py
+Cornelis/resources/exemples.qgz

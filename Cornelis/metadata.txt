@@ -7,7 +7,7 @@ name=Cornelis
 qgisMinimumVersion=3.34
 qgisMaximumVersion=4.98
 description=Help produce 'cartographic' tessellations of the plan, and try to imitate M.C. Escher.
-version=0.4.2-dev
+version=0.4.3-dev
 supportsQt6=True
 
 author=Xavier Culos
@@ -24,6 +24,7 @@ repository=https://github.com/xcaeag/Cornelis-QGis-Plugin
 hasProcessingProvider=no
 # Uncomment the following line and add your changelog:
 changelog=
+    0.4.2 : Fix incorrect flip transformation
     0.4.1 : Minor fixes
     0.4.0 : QGis 4.0 Compatible
     0.3.0 : Qt6 compatible

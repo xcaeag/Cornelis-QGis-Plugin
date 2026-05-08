@@ -306,28 +306,30 @@ class TDMapTool(QgsMapTool):
         vl = QgsVectorLayer("{}?crs={}".format(typ, crs.authid()), name, "memory")
         pr = vl.dataProvider()
         vl.startEditing()
+        try:
 
-        pr.addAttributes(fields)
+            pr.addAttributes(fields)
 
-        for i, geom in enumerate(geoms):
-            feat = QgsFeature()
-            try:
-                feat.setGeometry(geom)
+            for i, geom in enumerate(geoms):
+                feat = QgsFeature()
+                try:
+                    feat.setGeometry(geom)
 
-                if len(attrs) > 0:
-                    feat.setFields(fields)
-                    for fk, fieldef in attrs.items():
-                        if "values" in fieldef:
-                            feat.setAttribute(fk, fieldef["values"][i])
-                        if "value" in fieldef:
-                            feat.setAttribute(fk, fieldef["value"])
+                    if len(attrs) > 0:
+                        feat.setFields(fields)
+                        for fk, fieldef in attrs.items():
+                            if "values" in fieldef:
+                                feat.setAttribute(fk, fieldef["values"][i])
+                            if "value" in fieldef:
+                                feat.setAttribute(fk, fieldef["value"])
 
-                pr.addFeature(feat)
-            except Exception as e:
-                self.log(f";-(   {e}")
-                continue
+                    pr.addFeature(feat)
+                except Exception as e:
+                    self.log(f";-(   {e}")
+                    continue
 
-        vl.commitChanges()
+        finally:
+            vl.commitChanges()
 
         return vl
 
@@ -483,7 +485,7 @@ class TDMapTool(QgsMapTool):
         iface.statusBarIface().showMessage("{} {} %".format(text, int(100 * percent)))
         QApplication.processEvents()
 
-    def log(self, text, level=Qgis.MessageLevel.Info, duration=5):
+    def log(self, text):
         QgsMessageLog.logMessage(text, "Extensions")
 
     def message(self, text, level=Qgis.MessageLevel.Info, duration=5):
@@ -591,26 +593,54 @@ class TDMapTool(QgsMapTool):
             self.doVectorLayers(newVectorLayers)
             self.doRasterLayers(newRasterLayers)
 
-            pavageGeoms, pavageTransfos, positions, pavageAttr = (
-                self.pavage.getPavagePolygons(extent)
-            )
-            self.transformations = pavageTransfos
-            self.patternPositions = positions
+                pr = layer.dataProvider()
+                layer.startEditing()
+                try:
+                    toDelete = []
+                    feats = []
+                    self.log(f"- {layer.name()}")
 
-            # Add Sketch layer
-            if self.pavage.hasSketch():
-                geom = self.pavage.getSketchGeom()
-                images, _, _ = self.pavage.getImagesGeomPavage(
-                    geom, self.transformations, self.patternPositions
-                )
+                    for _, f in enumerate(layer.getFeatures()):
+                        QApplication.processEvents()
+                        toDelete.append(f.id())
+                        g = f.geometry()
+                        images, rotations, flips = self.pavage.getImagesGeomPavage(
+                            g, self.transformations, self.patternPositions
+                        )
+                        rotations = list(itertools.chain(*rotations))
+                        flips = list(itertools.chain(*flips))
+                        for image, rot, flip in zip(images, rotations, flips):
+                            feat = QgsFeature()
+                            try:
+                                feat.setGeometry(image)  # or image
 
-                layersketch = self.layerFromGeoms(
-                    images, name=self.tr("Sketch") + f" {pname}", typ="Linestring"
-                )
-                self.addLayer(group, layersketch, visible=False)
-                layersketch.loadNamedStyle(
-                    str(DIR_PLUGIN_ROOT / "resources/sketch.qml")
-                )
+                                fields = f.fields()
+                                feat.setFields(fields)
+                                for atid in pr.attributeIndexes():
+                                    if atid not in pr.pkAttributeIndexes():
+                                        field = f.fields().at(atid)
+                                        if field.name() not in (
+                                            "cornelis_rotation",
+                                            "cornelis_flip",
+                                        ):
+                                            feat.setAttribute(
+                                                field.name(), f.attribute(atid)
+                                            )
+
+                                feat.setAttribute("cornelis_rotation", rot)
+                                feat.setAttribute("cornelis_flip", flip)
+
+                                feats.append(feat)
+                            except Exception as e:
+                                self.log(f";-(   {e}")
+                                continue
+
+                    self.log(f"- {layer.name()} {len(feats)} feats")
+                    pr.addFeatures(feats)
+                    pr.deleteFeatures(toDelete)
+                finally:
+                    layer.commitChanges()
+                    layer.triggerRepaint()
 
             # Add pattern layer
             # pattern geoms
@@ -642,15 +672,30 @@ class TDMapTool(QgsMapTool):
             self.addLayer(group, layerPavage, visible=False)
             layerPavage.loadNamedStyle(str(DIR_PLUGIN_ROOT / "resources/pavage.qml"))
 
+            # Add Sketch layer
+            if self.pavage.hasSketch():
+                geom = self.pavage.getSketchGeom()
+                images, rotations, flips = self.pavage.getImagesGeomPavage(
+                    geom, self.transformations, self.patternPositions
+                )
+
+                layersketch = self.layerFromGeoms(
+                    images, name=self.tr("Sketch") + f" {pname}", typ="Linestring"
+                )
+                self.addLayer(group, layersketch, visible=False)
+                layersketch.loadNamedStyle(
+                    str(DIR_PLUGIN_ROOT / "resources/sketch.qml")
+                )
+
             self.message(self.tr("End !"), level=Qgis.MessageLevel.Success)
 
         except Exception as e:
             self.message(self.tr("End !"), level=Qgis.MessageLevel.Critical)
-            raise e
+            self.log(f"{e}")
 
         finally:
             iface.statusBarIface().clearMessage()
-            iface.mapCanvas().refreshAllLayers()
+            # iface.mapCanvas().refreshAllLayers()
             iface.mapCanvas().waitWhileRendering()
             QgsApplication.restoreOverrideCursor()
 
@@ -705,9 +750,10 @@ class TDMapTool(QgsMapTool):
                 if len(geoms) > 0:
                     images = []
                     for g in geoms:
-                        images, _, _ = images + self.pavage.getImagesGeomPavage(
+                        newimages, _, _ = self.pavage.getImagesGeomPavage(
                             g, self.transformations, self.patternPositions
                         )
+                        images = images + newimages
                     rbSample.setToGeometry(images[0])
                     for g in images[1:]:
                         rbSample.addGeometry(g)

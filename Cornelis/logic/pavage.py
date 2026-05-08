@@ -106,6 +106,10 @@ class Node:
         if x1 == x2:  # Cas particulier : droite verticale
             x_sym = 2 * x1 - p.x
             y_sym = p.y
+            # QgsMessageLog.logMessage(
+            #    f"SYM Linestring({int(x1)} {int(y1)}),({int(x2)} {int(y2)})   Point({int(p.x)} {int(p.y)}) -> Point({int(x_sym)} {int(y_sym)})",
+            #    "Extensions",
+            # )
         elif y1 == y2:  # Cas particulier : droite horizontale
             x_sym = p.x
             y_sym = 2 * y1 - p.y
@@ -116,11 +120,8 @@ class Node:
 
             # Calcul de la projection du point sur la droite
             d = (p.x + (p.y - intercept) * pente) / (1 + pente**2)
-            x_proj = 2 * d - p.x
-            y_proj = 2 * d * pente - p.y + 2 * intercept
-
-            x_sym = x_proj
-            y_sym = y_proj
+            x_sym = 2 * d - p.x
+            y_sym = 2 * d * pente - p.y + 2 * intercept
 
         return Node(x_sym, y_sym)
 
@@ -270,9 +271,15 @@ class Transformation:
         if copy:
             g = Transformation.copyGeom(g)
 
+        newVertices = {}
         for nid, v in enumerate(g.vertices()):
-            v = self.transformNode(QgsPointXY(v))
+            newVertices[nid] = self.transformNode(QgsPointXY(v))
+
+        for nid, v in newVertices.items():
             g.moveVertex(v.x(), v.y(), nid)
+
+        # wkt = g.snappedToGrid(1, 1).asWkt()
+        # QgsMessageLog.logMessage(f"{self.__class__.__name__}  -> {wkt}", "Extensions")
 
         return g
 
@@ -415,6 +422,9 @@ class Translation(Transformation):
             self.dy = self.p1.y - self.p0.y
 
         g.translate(self.dx, self.dy)
+
+        # wkt = g.snappedToGrid(1, 1).asWkt()
+        # QgsMessageLog.logMessage(f"{self.__class__.__name__}  -> {wkt}", "Extensions")
 
         return g
 
@@ -600,6 +610,7 @@ class Flip(Transformation):
             p = Transformation.copyNode(p)
 
         s = Node.axialSymmetry(p, self.d1, self.d2)
+
         if isinstance(p, Node):
             p.x = s.x
             p.y = s.y
@@ -801,8 +812,8 @@ class Pattern:
                 t = self.getTransformation(tileTransform)
                 if t is None:
                     raise Exception(f"invalid transformation {tileTransform}")
-                newTile = t.transformSeg(newTile, copy=False)
 
+                newTile = t.transformSeg(newTile, copy=False)
                 rotation = (rotation + t.getValueRotation()) % 360
                 flip = flip * t.getValueFlip()
 
@@ -861,10 +872,6 @@ class Pattern:
                     raise Exception(f"invalid transformation {tileTransform}")
 
                 newGeom = t.transformGeom(newGeom, copy=False)
-                QgsMessageLog.logMessage(f"{t}", "Extensions")
-                gstr = self.gstr(newGeom)
-                QgsMessageLog.logMessage(f"new {gstr}", "Extensions")
-
                 rotation = (rotation + t.getValueRotation()) % 360
                 flip = flip * t.getValueFlip()
 
