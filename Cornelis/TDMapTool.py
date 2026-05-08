@@ -2,6 +2,8 @@ import json
 import itertools
 from enum import Enum
 
+import processing
+
 from qgis.core import (
     Qgis,
     QgsApplication,
@@ -16,8 +18,10 @@ from qgis.core import (
     QgsPointXY,
     QgsProject,
     QgsVectorLayer,
+    QgsRasterLayer,
     QgsWkbTypes,
     QgsMessageLog,
+    QgsProcessingUtils,
 )
 from qgis.gui import QgsMapTool, QgsRubberBand
 from qgis.PyQt.QtCore import Qt, QMetaType
@@ -27,7 +31,7 @@ from qgis.utils import iface
 
 from .__about__ import DIR_PLUGIN_ROOT
 from .logic.pavage import Movement, Pavage
-from .logic.tools import getLayers
+from .logic.tools import getLayers, cliprasterbyextent, warpreproject
 from .logic.typo import Typo
 
 globals()["globalPavage"] = None
@@ -367,14 +371,14 @@ class TDMapTool(QgsMapTool):
         t = group.addLayer(layer)
         t.setItemVisibilityChecked(visible)
 
-    def prepareNewVectorLayer(self, g, layer, layerMask):
+    def prepareNewVectorLayer(self, g, layer, tileLayer):
         # new layer in map projection
         layer_crs = QgsCoordinateReferenceSystem(layer.crs().authid())
-        mask_crs = QgsCoordinateReferenceSystem(layerMask.crs().authid())
-        transformationRequired = layer.crs().authid() != layerMask.crs().authid()
+        mask_crs = QgsCoordinateReferenceSystem(tileLayer.crs().authid())
+        transformationRequired = layer.crs().authid() != tileLayer.crs().authid()
 
         # Extract by location, transform and clip
-        fmask = layerMask.getFeatures("1=1").__next__()
+        fmask = tileLayer.getFeatures("1=1").__next__()
         gmask = fmask.geometry()
         gmask2 = QgsGeometry(gmask)
         if transformationRequired:
@@ -429,6 +433,54 @@ class TDMapTool(QgsMapTool):
 
         return newLayer
 
+    def prepareNewRasterLayer(self, g, layer, extent):
+        r = cliprasterbyextent(layer, extent)
+
+        if layer.crs().authid() != self._canvas.mapSettings().destinationCrs().authid():
+            r = warpreproject(r, self._canvas.mapSettings().destinationCrs())
+
+        newLayer = QgsRasterLayer(r)
+        newLayer.setName("NEW {}".format(layer.name()))
+        self.copyPasteStyle(layer, newLayer)
+
+        self.addLayer(g, newLayer, visible=True)
+
+        return newLayer
+
+    def prepareNewVectorLayers(self, group, layers, tileLayer):
+        newVectorLayers = []
+        for layer in layers.values():
+            self.log(f"- {layer.name()}")
+
+            if isinstance(layer, QgsVectorLayer):
+                try:
+                    newV = self.prepareNewVectorLayer(group, layer, tileLayer)
+                    newVectorLayers.append(newV)
+                except Exception as e:
+                    self.message(
+                        f"Traitement de la couche vectorielle {layer.name()} impossible"
+                    )
+                    self.log(f"ERR : {str(e)}")
+
+        return newVectorLayers
+
+    def prepareNewRasterLayers(self, group, layers, extent):
+        newRasterLayers = []
+        for layer in layers.values():
+            self.log(f"- {layer.name()}")
+
+            if isinstance(layer, QgsRasterLayer):
+                try:
+                    newR = self.prepareNewRasterLayer(group, layer, extent)
+                    newRasterLayers.append(newR)
+                except Exception as e:
+                    self.message(
+                        f"Traitement de la couche raster {layer.name()} impossible"
+                    )
+                    self.log(f"ERR : {str(e)}")
+
+        return newRasterLayers
+
     def showProgress(self, text, percent):
         iface.statusBarIface().showMessage("{} {} %".format(text, int(100 * percent)))
         QApplication.processEvents()
@@ -440,6 +492,75 @@ class TDMapTool(QgsMapTool):
         iface.messageBar().pushMessage(
             self.tr("Tesselation"), text, level=level, duration=duration
         )
+
+    def doVectorLayers(self, newVectorLayers):
+        self.showProgress("Cornelis", 0)
+        for ilayer, layer in enumerate(newVectorLayers):
+            self.showProgress("Cornelis", ilayer // len(newVectorLayers))
+
+            pr = layer.dataProvider()
+            layer.startEditing()
+            try:
+                toDelete = []
+                feats = []
+                self.log(f"- {layer.name()}")
+
+                for _, f in enumerate(layer.getFeatures()):
+                    QApplication.processEvents()
+                    toDelete.append(f.id())
+                    g = f.geometry()
+                    images, rotations, flips = self.pavage.getImagesGeomPavage(
+                        g, self.transformations, self.patternPositions
+                    )
+                    rotations = list(itertools.chain(*rotations))
+                    flips = list(itertools.chain(*flips))
+                    for image, rot, flip in zip(images, rotations, flips):
+                        feat = QgsFeature()
+                        try:
+                            feat.setGeometry(image)  # or image
+
+                            fields = f.fields()
+                            feat.setFields(fields)
+                            for atid in pr.attributeIndexes():
+                                if atid not in pr.pkAttributeIndexes():
+                                    field = f.fields().at(atid)
+                                    if field.name() not in (
+                                        "cornelis_rotation",
+                                        "cornelis_flip",
+                                    ):
+                                        feat.setAttribute(
+                                            field.name(), f.attribute(atid)
+                                        )
+
+                            feat.setAttribute("cornelis_rotation", rot)
+                            feat.setAttribute("cornelis_flip", flip)
+
+                            feats.append(feat)
+                        except Exception as e:
+                            self.log(f";-(   {e}")
+                            continue
+
+                self.log(f"- {layer.name()} {len(feats)} feats")
+                pr.addFeatures(feats)
+                pr.deleteFeatures(toDelete)
+            finally:
+                layer.commitChanges()
+
+    def doRasterLayers(self, newRasterLayers):
+        """Traite les couches raster
+
+        Args:
+            newRasterLayers (QgsRasterLayer[]): liste des couches raster visibles
+        """
+
+        self.showProgress("Cornelis", 0)
+        for ilayer, layer in enumerate(newRasterLayers):
+            self.showProgress("Cornelis", ilayer // len(newRasterLayers))
+
+            # self.pavage.getImagesGeomPavage
+            self.pavage.drawRasterPavage(
+                layer, self.transformations, self.patternPositions
+            )
 
     def do(self):
         try:
@@ -455,41 +576,22 @@ class TDMapTool(QgsMapTool):
 
             # mask
             attrs = {"name": {"fieldtype": "str", "value": pname}}
-            layerMask = self.layerFromGeom(
+            tileLayer = self.layerFromGeom(
                 tileGeom, attrs=attrs, name=self.tr("Tile") + f" {pname}"
             )
 
-            # pattern geoms
-            patternGeoms, patternAttr = self.pavage.getPatternPolygons()
-            patternAttr["name"] = {"fieldtype": "str", "value": pname}
-
             # pavage geoms limit to extent
             extent = self._canvas.extent()
-            pavageGeoms, pavageTransfos, positions, pavageAttr = (
-                self.pavage.getPavagePolygons(extent)
-            )
-            self.transformations = pavageTransfos
-            self.patternPositions = positions
 
+            # prepare vector layers
             layers = getLayers()
             self.message(self.tr("Initialization..."))
-            newVectorLayers = []
-            for layer in layers.values():
-                self.log(f"- {layer.name()}")
+            newVectorLayers = self.prepareNewVectorLayers(group, layers, tileLayer)
+            newRasterLayers = self.prepareNewRasterLayers(group, layers, extent)
 
-                if isinstance(layer, QgsVectorLayer):
-                    try:
-                        newV = self.prepareNewVectorLayer(group, layer, layerMask)
-                        newVectorLayers.append(newV)
-                    except Exception as e:
-                        self.message(
-                            f"Traitement de la couche {layer.name()} impossible"
-                        )
-                        self.log(f"ERR : {str(e)} impossible")
-
-            self.showProgress("Cornelis", 0)
-            for ilayer, layer in enumerate(newVectorLayers):
-                self.showProgress("Cornelis", ilayer // len(newVectorLayers))
+            # processes the new layers
+            self.doVectorLayers(newVectorLayers)
+            self.doRasterLayers(newRasterLayers)
 
                 pr = layer.dataProvider()
                 layer.startEditing()
@@ -541,6 +643,10 @@ class TDMapTool(QgsMapTool):
                     layer.triggerRepaint()
 
             # Add pattern layer
+            # pattern geoms
+            patternGeoms, patternAttr = self.pavage.getPatternPolygons()
+            patternAttr["name"] = {"fieldtype": "str", "value": pname}
+
             if len(patternGeoms) > 1:
                 layerPattern = self.layerFromGeoms(
                     patternGeoms,
@@ -553,8 +659,8 @@ class TDMapTool(QgsMapTool):
                 )
 
             # Add tile layer
-            self.addLayer(group, layerMask, visible=False)
-            layerMask.loadNamedStyle(str(DIR_PLUGIN_ROOT / "resources/tile.qml"))
+            self.addLayer(group, tileLayer, visible=False)
+            tileLayer.loadNamedStyle(str(DIR_PLUGIN_ROOT / "resources/tile.qml"))
 
             # Add pavage layer
             pavageAttr["name"] = {"fieldtype": "str", "value": pname}
@@ -770,7 +876,7 @@ class TDMapTool(QgsMapTool):
         elif self.pavageVisible:
             snid = self.pavage.getIsHandleMoveNode(xpos, ypos, dist)
             if snid[0] is not None:
-                (self.currentSegId, self.currentNodeId) = snid
+                self.currentSegId, self.currentNodeId = snid
                 if self.keyModifier == Qt.KeyboardModifier.ControlModifier:
                     self.mode = Mode.DEL_NODE
                 else:
@@ -780,7 +886,7 @@ class TDMapTool(QgsMapTool):
                 snid = self.pavage.getIsHandleAdd(xpos, ypos, dist)
                 if snid[0] is not None:
                     # add node
-                    (self.currentSegId, self.currentNodeId) = self.pavage.addNode(
+                    self.currentSegId, self.currentNodeId = self.pavage.addNode(
                         snid[0], snid[1], self.currentPointXY
                     )
                     self.mode = Mode.MOVE_NODE
@@ -833,8 +939,8 @@ class TDMapTool(QgsMapTool):
             if self.pavageVisible and not self.drawingMode:
                 idp = self.pavage.getIsHandleP(xpos, ypos, dist)
 
-                (self.currentSegId, self.currentNodeId) = (
-                    self.pavage.getIsHandleMoveNode(xpos, ypos, dist)
+                self.currentSegId, self.currentNodeId = self.pavage.getIsHandleMoveNode(
+                    xpos, ypos, dist
                 )
                 addId = self.pavage.getIsHandleAdd(xpos, ypos, dist)
 
