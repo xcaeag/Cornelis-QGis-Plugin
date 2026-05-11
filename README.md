@@ -71,6 +71,22 @@ Deux champs additionnels (cornelis_rotation, cornelis_flip) donnent la valeur de
 
 ![alt text](Cornelis/resources/demo4.gif)
 
+**Couches raster (version >= 0.5.0)**
+
+Et si les bibliothèques 'scipy' et 'scikit-image' sont installées, les couches raster sont aussi traitées, dans la mesure du possible (fichiers locaux seulement).
+
+L'étendu du nouveau raster "pavé" est alignée à la vue courante.
+
+ex : les îles de Ouessan et Nasseuo !
+
+![alt text](Cornelis/resources/raster.png)
+
+```bash
+# installer les lib
+python3 -m pip install scipy
+python3 -m pip install scikit-image
+```
+
 ## Utiliser l'expression 'cornelis' dans un générateur de géométrie
 
 Avec le type de symbole 'générateur de géométrie', tout est permis ! La fonction "cornelis" s'appuyant sur le pavage courant va transformer les entités à la volée.

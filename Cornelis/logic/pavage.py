@@ -823,28 +823,17 @@ class Pattern:
 
         return r, rotations, flips
 
-    def gstr(self, g):
+    """def gstr(self, g):
         r = ""
         for v in g.vertices():
             x = int(v.x())
             y = int(v.y())
             r = r + f" ({x},{y})"
 
-        return r
+        return r"""
 
     def getImagesGeomPattern(self, geom: QgsGeometry) -> List[QgsGeometry]:
-        QgsMessageLog.logMessage("getImagesGeomPattern", "Extensions")
-        """Projette l'image d'une géométrie quelconque sur les tuiles du pattern de base
-
-        Args:
-            geom (QgsGeometry): _description_
-
-        Raises:
-            Exception: _description_
-
-        Returns:
-            List[QgsGeometry]: _description_
-        """
+        """Projette l'image d'une géométrie quelconque sur les tuiles du pattern de base"""
         patternFromSrc = (
             True
             if "conf" in self.typo and "patternfromsource" in self.typo["conf"]
@@ -857,8 +846,8 @@ class Pattern:
         rotation, flip = 0, 1
 
         newGeom = Transformation.copyGeom(geom)
-        gstr = self.gstr(newGeom)
-        QgsMessageLog.logMessage(f"{gstr}", "Extensions")
+        # gstr = self.gstr(newGeom)
+        # QgsMessageLog.logMessage(f"{gstr}", "Extensions")
 
         for tileTransforms in self.typo["pattern"].values():
             if patternFromSrc:
@@ -925,44 +914,6 @@ class Pattern:
                 r.append(g)
 
         return r, protations, pflips
-
-    def drawRasterPattern(self):
-        # https://scikit-image.org/docs/stable/auto_examples/transform/plot_transform_types.html
-        # tform = transform.EuclideanTransform(rotation=np.pi / 12.0, translation=(100, -20))
-        # print(tform.params)
-        # img = img_as_float(data.chelsea())
-        # tf_img = transform.warp(img, tform.inverse)
-
-        """nx, ny = 10, 10
-        poly_verts = [(1,1), (5,1), (5,9),(3,2),(1,1)]
-
-        # Create vertex coordinates for each grid cell...
-        # (<0,0> is at the top left of the grid in this system)
-        x, y = np.meshgrid(np.arange(nx), np.arange(ny))
-        x, y = x.flatten(), y.flatten()
-
-        points = np.vstack((x,y)).T
-
-        grid = points_inside_poly(points, poly_verts)
-        grid = grid.reshape((ny,nx))
-        """
-        pass
-
-    def drawRasterPavage(self, layer, pavageTransfos, patternPositions):
-        ds = gdal.Open(layer.dataProvider().dataSourceUri())
-        npa = ds.ReadAsArray()
-        npa = npa.astype(np.float32)
-
-        # pattern, _, _ = self.getPatternLinestrings()c
-        """patternBorder = self.drawRasterPattern(npa)
-
-        for posx, posy in patternPositions:
-            for trsf in pavageTransfos["tx"]:
-                tx = trsf * posx
-                tx.copyRasterPolygon(patternBorder, npa)
-            for trsf in pavageTransfos["ty"]:
-                ty = trsf * posy
-                newPattern = ty.transformGeoms(newPattern, copy=False)"""
 
     def getOtherNodeXY(self):
         pts = {}

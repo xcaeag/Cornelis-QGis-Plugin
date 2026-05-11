@@ -1,8 +1,8 @@
 import json
 import itertools
 from enum import Enum
-
-import processing
+from osgeo import gdal
+import numpy as np
 
 from qgis.core import (
     Qgis,
@@ -21,7 +21,6 @@ from qgis.core import (
     QgsRasterLayer,
     QgsWkbTypes,
     QgsMessageLog,
-    QgsProcessingUtils,
 )
 from qgis.gui import QgsMapTool, QgsRubberBand
 from qgis.PyQt.QtCore import Qt, QMetaType
@@ -31,7 +30,15 @@ from qgis.utils import iface
 
 from .__about__ import DIR_PLUGIN_ROOT
 from .logic.pavage import Movement, Pavage
-from .logic.tools import getLayers, cliprasterbyextent, warpreproject
+from .logic.tools import (
+    getLayers,
+    cliprasterbyextent,
+    warpreproject,
+    copyPasteRasterTile,
+    updateGeotiff,
+    toPix,
+    SUPPORT_RASTER,
+)
 from .logic.typo import Typo
 
 globals()["globalPavage"] = None
@@ -443,8 +450,6 @@ class TDMapTool(QgsMapTool):
         newLayer.setName("NEW {}".format(layer.name()))
         self.copyPasteStyle(layer, newLayer)
 
-        self.addLayer(g, newLayer, visible=True)
-
         return newLayer
 
     def prepareNewVectorLayers(self, group, layers, tileLayer):
@@ -517,7 +522,7 @@ class TDMapTool(QgsMapTool):
                     for image, rot, flip in zip(images, rotations, flips):
                         feat = QgsFeature()
                         try:
-                            feat.setGeometry(image)  # or image
+                            feat.setGeometry(image)
 
                             fields = f.fields()
                             feat.setFields(fields)
@@ -546,7 +551,7 @@ class TDMapTool(QgsMapTool):
             finally:
                 layer.commitChanges()
 
-    def doRasterLayers(self, newRasterLayers):
+    def doRasterLayers(self, newRasterLayers, pavageGeoms):
         """Traite les couches raster
 
         Args:
@@ -554,13 +559,32 @@ class TDMapTool(QgsMapTool):
         """
 
         self.showProgress("Cornelis", 0)
-        for ilayer, layer in enumerate(newRasterLayers):
+        for ilayer, rlayer in enumerate(newRasterLayers):
             self.showProgress("Cornelis", ilayer // len(newRasterLayers))
 
-            # self.pavage.getImagesGeomPavage
-            self.pavage.drawRasterPavage(
-                layer, self.transformations, self.patternPositions
-            )
+            ds = gdal.Open(str(rlayer.dataProvider().dataSourceUri()), gdal.GA_Update)
+            image = ds.ReadAsArray()
+            if len(image.shape) > 2:
+                image = np.transpose(image, (1, 2, 0))
+
+            polySrc = None
+            polyDst = None
+            for g in pavageGeoms:
+                pl = g.asPolygon()  # first polyline is the tile to copy
+                aPoly = [[p.x(), p.y()] for p in pl[0]]
+                aPolyPx, _, _, _, _ = toPix(rlayer, aPoly)
+
+                if polySrc is None:
+                    polySrc = aPolyPx
+                else:
+                    polyDst = aPolyPx
+
+                    image = copyPasteRasterTile(image, polySrc, polyDst)
+
+            if len(image.shape) > 2:
+                image = np.transpose(image, (2, 0, 1))
+
+            updateGeotiff(ds, image)
 
     def do(self):
         try:
@@ -589,14 +613,26 @@ class TDMapTool(QgsMapTool):
             self.patternPositions = positions
 
             # prepare vector layers
-            layers = getLayers()
             self.message(self.tr("Initialization..."))
-            newVectorLayers = self.prepareNewVectorLayers(group, layers, tileLayer)
-            newRasterLayers = self.prepareNewRasterLayers(group, layers, extent)
 
+            layers = getLayers()
+            newVectorLayers = self.prepareNewVectorLayers(group, layers, tileLayer)
             # processes the new layers
             self.doVectorLayers(newVectorLayers)
-            self.doRasterLayers(newRasterLayers)
+
+            if SUPPORT_RASTER:
+                newRasterLayers = self.prepareNewRasterLayers(group, layers, extent)
+                self.doRasterLayers(newRasterLayers, pavageGeoms)
+
+                for rlayer in newRasterLayers:
+                    self.addLayer(group, rlayer, visible=True)
+
+            else:
+                self.message(
+                    self.tr(
+                        "Raster support needs install 'skimage' and 'scipy' libraries"
+                    )
+                )
 
             # Add pattern layer
             # pattern geoms
@@ -631,7 +667,7 @@ class TDMapTool(QgsMapTool):
             # Add Sketch layer
             if self.pavage.hasSketch():
                 geom = self.pavage.getSketchGeom()
-                images, rotations, flips = self.pavage.getImagesGeomPavage(
+                images, _, _ = self.pavage.getImagesGeomPavage(
                     geom, self.transformations, self.patternPositions
                 )
 
@@ -648,10 +684,17 @@ class TDMapTool(QgsMapTool):
         except Exception as e:
             self.message(self.tr("End !"), level=Qgis.MessageLevel.Critical)
             self.log(f"{e}")
+            raise (e)
 
         finally:
+            for layer in newVectorLayers:
+                layer.triggerRepaint()
+
+            if SUPPORT_RASTER:
+                for layer in newRasterLayers:
+                    layer.triggerRepaint()
+
             iface.statusBarIface().clearMessage()
-            # iface.mapCanvas().refreshAllLayers()
             iface.mapCanvas().waitWhileRendering()
             QgsApplication.restoreOverrideCursor()
 
