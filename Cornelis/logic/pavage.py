@@ -926,12 +926,34 @@ class Pattern:
 
         return r, protations, pflips
 
+    def drawRasterPattern(self):
+        # https://scikit-image.org/docs/stable/auto_examples/transform/plot_transform_types.html
+        # tform = transform.EuclideanTransform(rotation=np.pi / 12.0, translation=(100, -20))
+        # print(tform.params)
+        # img = img_as_float(data.chelsea())
+        # tf_img = transform.warp(img, tform.inverse)
+
+        """nx, ny = 10, 10
+        poly_verts = [(1,1), (5,1), (5,9),(3,2),(1,1)]
+
+        # Create vertex coordinates for each grid cell...
+        # (<0,0> is at the top left of the grid in this system)
+        x, y = np.meshgrid(np.arange(nx), np.arange(ny))
+        x, y = x.flatten(), y.flatten()
+
+        points = np.vstack((x,y)).T
+
+        grid = points_inside_poly(points, poly_verts)
+        grid = grid.reshape((ny,nx))
+        """
+        pass
+
     def drawRasterPavage(self, layer, pavageTransfos, patternPositions):
         ds = gdal.Open(layer.dataProvider().dataSourceUri())
         npa = ds.ReadAsArray()
         npa = npa.astype(np.float32)
 
-        # pattern, _, _ = self.getPatternLinestrings()
+        # pattern, _, _ = self.getPatternLinestrings()c
         """patternBorder = self.drawRasterPattern(npa)
 
         for posx, posy in patternPositions:
