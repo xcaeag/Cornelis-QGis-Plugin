@@ -30,15 +30,7 @@ from qgis.utils import iface
 
 from .__about__ import DIR_PLUGIN_ROOT
 from .logic.pavage import Movement, Pavage
-from .logic.tools import (
-    getLayers,
-    cliprasterbyextent,
-    warpreproject,
-    copyPasteRasterTile,
-    updateGeotiff,
-    toPix,
-    SUPPORT_RASTER,
-)
+from .logic import tools
 from .logic.typo import Typo
 
 globals()["globalPavage"] = None
@@ -440,17 +432,21 @@ class TDMapTool(QgsMapTool):
 
         return newLayer
 
-    def prepareNewRasterLayer(self, g, layer, extent):
-        r = cliprasterbyextent(layer, extent)
-
+    def prepareNewRasterLayer(self, layer, extent):
+        r = tools.cliprasterbyextent(layer, extent)
         if layer.crs().authid() != self._canvas.mapSettings().destinationCrs().authid():
-            r = warpreproject(r, self._canvas.mapSettings().destinationCrs())
-
+            r = tools.warpreproject(r, self._canvas.mapSettings().destinationCrs())
         newLayer = QgsRasterLayer(r)
         newLayer.setName("NEW {}".format(layer.name()))
         self.copyPasteStyle(layer, newLayer)
-
         return newLayer
+
+        """newRasterUri = tools.newRaster(layer, extent)
+        newRaster = QgsRasterLayer(newRasterUri)
+        newRaster.setName("NEW {}".format(layer.name()))
+        self.copyPasteStyle(layer, newRaster)
+        return newRaster
+        """
 
     def prepareNewVectorLayers(self, group, layers, tileLayer):
         newVectorLayers = []
@@ -469,14 +465,14 @@ class TDMapTool(QgsMapTool):
 
         return newVectorLayers
 
-    def prepareNewRasterLayers(self, group, layers, extent):
+    def prepareNewRasterLayers(self, layers, extent):
         newRasterLayers = []
         for layer in layers.values():
             self.log(f"- {layer.name()}")
 
             if isinstance(layer, QgsRasterLayer):
                 try:
-                    newR = self.prepareNewRasterLayer(group, layer, extent)
+                    newR = self.prepareNewRasterLayer(layer, extent)
                     newRasterLayers.append(newR)
                 except Exception as e:
                     self.message(
@@ -572,19 +568,23 @@ class TDMapTool(QgsMapTool):
             for g in pavageGeoms:
                 pl = g.asPolygon()  # first polyline is the tile to copy
                 aPoly = [[p.x(), p.y()] for p in pl[0]]
-                aPolyPx, _, _, _, _ = toPix(rlayer, aPoly)
+                aPolyPx, _, _, _, _ = tools.toPix(rlayer, aPoly)
 
                 if polySrc is None:
                     polySrc = aPolyPx
                 else:
                     polyDst = aPolyPx
 
-                    image = copyPasteRasterTile(image, polySrc, polyDst)
+                    # image = tools.copyPasteRasterTile(image, polySrc, polyDst)
+                    image = tools.copier_region_avec_transformation(
+                        image, polySrc, polyDst
+                    )
+                    # break
 
             if len(image.shape) > 2:
                 image = np.transpose(image, (2, 0, 1))
 
-            updateGeotiff(ds, image)
+            tools.updateGeotiff(ds, image)
 
     def do(self):
         try:
@@ -615,13 +615,13 @@ class TDMapTool(QgsMapTool):
             # prepare vector layers
             self.message(self.tr("Initialization..."))
 
-            layers = getLayers()
+            layers = tools.getLayers()
             newVectorLayers = self.prepareNewVectorLayers(group, layers, tileLayer)
             # processes the new layers
             self.doVectorLayers(newVectorLayers)
 
-            if SUPPORT_RASTER:
-                newRasterLayers = self.prepareNewRasterLayers(group, layers, extent)
+            if tools.SUPPORT_RASTER:
+                newRasterLayers = self.prepareNewRasterLayers(layers, extent)
                 self.doRasterLayers(newRasterLayers, pavageGeoms)
 
                 for rlayer in newRasterLayers:
@@ -690,7 +690,7 @@ class TDMapTool(QgsMapTool):
             for layer in newVectorLayers:
                 layer.triggerRepaint()
 
-            if SUPPORT_RASTER:
+            if tools.SUPPORT_RASTER:
                 for layer in newRasterLayers:
                     layer.triggerRepaint()
 
