@@ -1049,3 +1049,19 @@ class TDMapTool(QgsMapTool):
             return newGeom
         except Exception:
             return None
+
+    def buildPavageImagesfromPoint(self, geom):
+
+        if "globalPavage" not in globals() or globals()["globalPavage"] is None:
+            return None
+        try:
+            geoms, _, _ = globals()["globalPavage"].getImagesGeomPavage(
+                geom, self.transformations, self.patternPositions
+            )
+            newGeom = geoms[0]
+            for g in geoms[1:]:
+                newGeom.addPartGeometry(g)
+
+            return newGeom
+        except Exception:
+            return None

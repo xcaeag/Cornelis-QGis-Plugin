@@ -84,11 +84,12 @@ transform(<br>
         return QCoreApplication.translate("CornelisGeometryFunction", message)
 
     def func(self, values, context, parent, node):
-        return self.plugin.buildPavageGeometry(context.feature(), geom=values[0])
+        return self.plugin.buildPavageGeometry(geom=values[0])
 
 
 class CornelisPlugin:
     """QGIS Plugin Implementation."""
+    _instance = None
 
     def __init__(self):
         """Constructor."""
@@ -118,6 +119,16 @@ class CornelisPlugin:
 
         self.mt = TDMapTool(self, self.canvas)
         self.__oldMapTool = None
+
+        CornelisPlugin._instance = self
+
+    @classmethod
+    def getInstance(cls, *args, **kwargs):
+        """Return the singleton instance, creating it if necessary."""
+        if cls._instance is None:
+            cls._instance = cls(*args, **kwargs)
+
+        return cls._instance
 
     # noinspection PyMethodMayBeStatic
     def tr(self, message):
@@ -363,5 +374,8 @@ class CornelisPlugin:
                 duration=5,
             )
 
-    def buildPavageGeometry(self, feature, geom=None):
+    def buildPavageGeometry(self, geom=None):
         return self.mt.buildPavageGeometry(geom)
+
+    def buildPavageImagesfromPoint(self, geom=None):
+        return self.mt.buildPavageImagesfromPoint(geom)
