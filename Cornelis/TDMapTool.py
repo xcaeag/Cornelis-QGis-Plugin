@@ -456,7 +456,8 @@ class TDMapTool(QgsMapTool):
             if isinstance(layer, QgsVectorLayer):
                 try:
                     newV = self.prepareNewVectorLayer(group, layer, tileLayer)
-                    newVectorLayers.append(newV)
+                    if newV.isValid():
+                        newVectorLayers.append(newV)
                 except Exception as e:
                     self.message(
                         f"Traitement de la couche vectorielle {layer.name()} impossible"
@@ -473,7 +474,8 @@ class TDMapTool(QgsMapTool):
             if isinstance(layer, QgsRasterLayer):
                 try:
                     newR = self.prepareNewRasterLayer(layer, extent)
-                    newRasterLayers.append(newR)
+                    if newR.isValid():
+                        newRasterLayers.append(newR)
                 except Exception as e:
                     self.message(
                         f"Traitement de la couche raster {layer.name()} impossible"
