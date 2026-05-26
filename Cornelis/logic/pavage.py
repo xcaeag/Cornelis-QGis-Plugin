@@ -882,13 +882,17 @@ class Pattern:
             List[QgsGeometry]: _description_
         """
         r = []
-        protations, pflips = [], []
+        protations, pflips, patternIds, tilesIds = [], [], [], []
         patternGeoms, rotations, flips = self.getImagesGeomPattern(geom)
 
         # QgsMessageLog.logMessage(f"{patternPositions}", "Extensions")
 
+        patternId = 0
         for dx, dy in patternPositions:
             # QgsMessageLog.logMessage(f"-- px {dx} py {dy}", "Extensions")
+            tilesId = [i for i, _ in enumerate(patternGeoms)]
+            patternIds.append([patternId] * len(patternGeoms))
+            tilesIds.append(tilesId)
             protations.append(rotations)
             pflips.append(flips)
             newPattern = Transformation.copyGeoms(patternGeoms)
@@ -913,7 +917,9 @@ class Pattern:
             for g in newPattern:
                 r.append(g)
 
-        return r, protations, pflips
+            patternId = patternId + 1
+
+        return r, protations, pflips, patternIds, tilesIds
 
     def getOtherNodeXY(self):
         pts = {}
