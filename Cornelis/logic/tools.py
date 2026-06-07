@@ -6,8 +6,6 @@ from qgis.utils import iface
 try:
     from skimage.draw import polygon
     from scipy.interpolate import RegularGridInterpolator
-
-    from skimage.draw import polygon
     from scipy.linalg import orthogonal_procrustes
 
     SUPPORT_RASTER = True
@@ -22,6 +20,7 @@ from qgis.core import (
     QgsProcessingUtils,
     QgsCoordinateReferenceSystem,
 )
+
 
 def getRecursiveLayers(layers: dict, node, checkedOnly: bool = True):
     """Get layers dict from group, only checked ones possibly
