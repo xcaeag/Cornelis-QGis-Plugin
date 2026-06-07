@@ -262,6 +262,8 @@ class TDMapTool(QgsMapTool):
         globals()["globalPavage"] = self.pavage
         self.showPavage(True)
 
+        return j["type"]
+
     def showPavage(self, visible):
         """ """
         self.pavageVisible = visible
@@ -1009,7 +1011,7 @@ class TDMapTool(QgsMapTool):
 
                     self.buildRubberBand()
                 else:
-                    self.log(f"?")
+                    self.log("?")
 
     def canvasReleaseEvent(self, event):
         """ """

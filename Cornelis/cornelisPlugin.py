@@ -149,7 +149,7 @@ class CornelisPlugin:
         self.typo = typo
         self.toolButton.setText(TYPES_PAVAGES[typo]["name"])
 
-    def createTypeAction(self, typo) -> QAction:
+    def createTypeAction(self, typo):
         icon = QIcon(str(DIR_PLUGIN_ROOT / "resources" / "vectorDeformInit.svg"))
 
         name = TYPES_PAVAGES[typo]["name"]
@@ -322,10 +322,11 @@ class CornelisPlugin:
             dlg = QFileDialog()
             dlg.setDefaultSuffix(".pav")
             fileName, _ = dlg.getOpenFileName(
-                None, self.tr("Load Pattern"), "Pattern (*.pav)", options=options
+                None, self.tr("Load Pattern"), "", "Pattern (*.pav)", options=options
             )
             if fileName:
-                self.mt.loadPavage(fileName)
+                typo = Typo(self.mt.loadPavage(fileName))
+                self.changeTypo(typo)
 
                 self.actions[self.ACTION_PAVAGE].setChecked(True)
 

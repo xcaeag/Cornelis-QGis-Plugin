@@ -3,10 +3,8 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import List
-from osgeo import gdal
-import numpy as np
 
-from qgis.core import QgsGeometry, QgsMultiPoint, QgsPoint, QgsPointXY, QgsMessageLog
+from qgis.core import QgsGeometry, QgsMultiPoint, QgsPoint, QgsPointXY
 
 from .typo import TYPES_PAVAGES, Typo
 
@@ -106,10 +104,7 @@ class Node:
         if x1 == x2:  # Cas particulier : droite verticale
             x_sym = 2 * x1 - p.x
             y_sym = p.y
-            # QgsMessageLog.logMessage(
-            #    f"SYM Linestring({int(x1)} {int(y1)}),({int(x2)} {int(y2)})   Point({int(p.x)} {int(p.y)}) -> Point({int(x_sym)} {int(y_sym)})",
-            #    "Extensions",
-            # )
+
         elif y1 == y2:  # Cas particulier : droite horizontale
             x_sym = p.x
             y_sym = 2 * y1 - p.y
