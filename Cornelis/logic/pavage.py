@@ -823,28 +823,17 @@ class Pattern:
 
         return r, rotations, flips
 
-    def gstr(self, g):
+    """def gstr(self, g):
         r = ""
         for v in g.vertices():
             x = int(v.x())
             y = int(v.y())
             r = r + f" ({x},{y})"
 
-        return r
+        return r"""
 
     def getImagesGeomPattern(self, geom: QgsGeometry) -> List[QgsGeometry]:
-        QgsMessageLog.logMessage("getImagesGeomPattern", "Extensions")
-        """Projette l'image d'une géométrie quelconque sur les tuiles du pattern de base
-
-        Args:
-            geom (QgsGeometry): _description_
-
-        Raises:
-            Exception: _description_
-
-        Returns:
-            List[QgsGeometry]: _description_
-        """
+        """Projette l'image d'une géométrie quelconque sur les tuiles du pattern de base"""
         patternFromSrc = (
             True
             if "conf" in self.typo and "patternfromsource" in self.typo["conf"]
@@ -857,8 +846,8 @@ class Pattern:
         rotation, flip = 0, 1
 
         newGeom = Transformation.copyGeom(geom)
-        gstr = self.gstr(newGeom)
-        QgsMessageLog.logMessage(f"{gstr}", "Extensions")
+        # gstr = self.gstr(newGeom)
+        # QgsMessageLog.logMessage(f"{gstr}", "Extensions")
 
         for tileTransforms in self.typo["pattern"].values():
             if patternFromSrc:
@@ -893,13 +882,17 @@ class Pattern:
             List[QgsGeometry]: _description_
         """
         r = []
-        protations, pflips = [], []
+        protations, pflips, patternIds, tilesIds = [], [], [], []
         patternGeoms, rotations, flips = self.getImagesGeomPattern(geom)
 
         # QgsMessageLog.logMessage(f"{patternPositions}", "Extensions")
 
+        patternId = 0
         for dx, dy in patternPositions:
             # QgsMessageLog.logMessage(f"-- px {dx} py {dy}", "Extensions")
+            tilesId = [i for i, _ in enumerate(patternGeoms)]
+            patternIds.append([patternId] * len(patternGeoms))
+            tilesIds.append(tilesId)
             protations.append(rotations)
             pflips.append(flips)
             newPattern = Transformation.copyGeoms(patternGeoms)
@@ -924,23 +917,9 @@ class Pattern:
             for g in newPattern:
                 r.append(g)
 
-        return r, protations, pflips
+            patternId = patternId + 1
 
-    def drawRasterPavage(self, layer, pavageTransfos, patternPositions):
-        ds = gdal.Open(layer.dataProvider().dataSourceUri())
-        npa = ds.ReadAsArray()
-        npa = npa.astype(np.float32)
-
-        # pattern, _, _ = self.getPatternLinestrings()
-        """patternBorder = self.drawRasterPattern(npa)
-
-        for posx, posy in patternPositions:
-            for trsf in pavageTransfos["tx"]:
-                tx = trsf * posx
-                tx.copyRasterPolygon(patternBorder, npa)
-            for trsf in pavageTransfos["ty"]:
-                ty = trsf * posy
-                newPattern = ty.transformGeoms(newPattern, copy=False)"""
+        return r, protations, pflips, patternIds, tilesIds
 
     def getOtherNodeXY(self):
         pts = {}

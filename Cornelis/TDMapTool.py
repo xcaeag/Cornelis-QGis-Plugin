@@ -1,8 +1,8 @@
 import json
 import itertools
 from enum import Enum
-
-import processing
+from osgeo import gdal
+import numpy as np
 
 from qgis.core import (
     Qgis,
@@ -21,7 +21,6 @@ from qgis.core import (
     QgsRasterLayer,
     QgsWkbTypes,
     QgsMessageLog,
-    QgsProcessingUtils,
 )
 from qgis.gui import QgsMapTool, QgsRubberBand
 from qgis.PyQt.QtCore import Qt, QMetaType
@@ -31,7 +30,7 @@ from qgis.utils import iface
 
 from .__about__ import DIR_PLUGIN_ROOT
 from .logic.pavage import Movement, Pavage
-from .logic.tools import getLayers, cliprasterbyextent, warpreproject
+from .logic import tools
 from .logic.typo import Typo
 
 globals()["globalPavage"] = None
@@ -401,6 +400,8 @@ class TDMapTool(QgsMapTool):
         fields_to_add = [
             QgsField("cornelis_rotation", QMetaType.Type.Int),
             QgsField("cornelis_flip", QMetaType.Type.Int),
+            QgsField("cornelis_pattern_id", QMetaType.Type.Int),
+            QgsField("cornelis_tile_id", QMetaType.Type.Int),
         ]
         newLayer.dataProvider().addAttributes(fields_to_add)
         newLayer.updateFields()
@@ -433,19 +434,21 @@ class TDMapTool(QgsMapTool):
 
         return newLayer
 
-    def prepareNewRasterLayer(self, g, layer, extent):
-        r = cliprasterbyextent(layer, extent)
-
+    def prepareNewRasterLayer(self, layer, extent):
+        r = tools.cliprasterbyextent(layer, extent)
         if layer.crs().authid() != self._canvas.mapSettings().destinationCrs().authid():
-            r = warpreproject(r, self._canvas.mapSettings().destinationCrs())
-
+            r = tools.warpreproject(r, self._canvas.mapSettings().destinationCrs())
         newLayer = QgsRasterLayer(r)
         newLayer.setName("NEW {}".format(layer.name()))
         self.copyPasteStyle(layer, newLayer)
-
-        self.addLayer(g, newLayer, visible=True)
-
         return newLayer
+
+        """newRasterUri = tools.newRaster(layer, extent)
+        newRaster = QgsRasterLayer(newRasterUri)
+        newRaster.setName("NEW {}".format(layer.name()))
+        self.copyPasteStyle(layer, newRaster)
+        return newRaster
+        """
 
     def prepareNewVectorLayers(self, group, layers, tileLayer):
         newVectorLayers = []
@@ -455,7 +458,8 @@ class TDMapTool(QgsMapTool):
             if isinstance(layer, QgsVectorLayer):
                 try:
                     newV = self.prepareNewVectorLayer(group, layer, tileLayer)
-                    newVectorLayers.append(newV)
+                    if newV.isValid():
+                        newVectorLayers.append(newV)
                 except Exception as e:
                     self.message(
                         f"Traitement de la couche vectorielle {layer.name()} impossible"
@@ -464,15 +468,16 @@ class TDMapTool(QgsMapTool):
 
         return newVectorLayers
 
-    def prepareNewRasterLayers(self, group, layers, extent):
+    def prepareNewRasterLayers(self, layers, extent):
         newRasterLayers = []
         for layer in layers.values():
             self.log(f"- {layer.name()}")
 
             if isinstance(layer, QgsRasterLayer):
                 try:
-                    newR = self.prepareNewRasterLayer(group, layer, extent)
-                    newRasterLayers.append(newR)
+                    newR = self.prepareNewRasterLayer(layer, extent)
+                    if newR.isValid():
+                        newRasterLayers.append(newR)
                 except Exception as e:
                     self.message(
                         f"Traitement de la couche raster {layer.name()} impossible"
@@ -509,15 +514,22 @@ class TDMapTool(QgsMapTool):
                     QApplication.processEvents()
                     toDelete.append(f.id())
                     g = f.geometry()
-                    images, rotations, flips = self.pavage.getImagesGeomPavage(
-                        g, self.transformations, self.patternPositions
+                    images, rotations, flips, patternIds, tilesIds = (
+                        self.pavage.getImagesGeomPavage(
+                            g, self.transformations, self.patternPositions
+                        )
                     )
                     rotations = list(itertools.chain(*rotations))
                     flips = list(itertools.chain(*flips))
-                    for image, rot, flip in zip(images, rotations, flips):
+                    patternIds = list(itertools.chain(*patternIds))
+                    tilesIds = list(itertools.chain(*tilesIds))
+
+                    for image, rot, flip, patternId, tileId in zip(
+                        images, rotations, flips, patternIds, tilesIds
+                    ):
                         feat = QgsFeature()
                         try:
-                            feat.setGeometry(image)  # or image
+                            feat.setGeometry(image)
 
                             fields = f.fields()
                             feat.setFields(fields)
@@ -527,6 +539,8 @@ class TDMapTool(QgsMapTool):
                                     if field.name() not in (
                                         "cornelis_rotation",
                                         "cornelis_flip",
+                                        "cornelis_pattern_id",
+                                        "cornelis_tile_id",
                                     ):
                                         feat.setAttribute(
                                             field.name(), f.attribute(atid)
@@ -534,6 +548,8 @@ class TDMapTool(QgsMapTool):
 
                             feat.setAttribute("cornelis_rotation", rot)
                             feat.setAttribute("cornelis_flip", flip)
+                            feat.setAttribute("cornelis_pattern_id", patternId)
+                            feat.setAttribute("cornelis_tile_id", tileId)
 
                             feats.append(feat)
                         except Exception as e:
@@ -546,7 +562,7 @@ class TDMapTool(QgsMapTool):
             finally:
                 layer.commitChanges()
 
-    def doRasterLayers(self, newRasterLayers):
+    def doRasterLayers(self, newRasterLayers, pavageGeoms):
         """Traite les couches raster
 
         Args:
@@ -554,13 +570,36 @@ class TDMapTool(QgsMapTool):
         """
 
         self.showProgress("Cornelis", 0)
-        for ilayer, layer in enumerate(newRasterLayers):
+        for ilayer, rlayer in enumerate(newRasterLayers):
             self.showProgress("Cornelis", ilayer // len(newRasterLayers))
 
-            # self.pavage.getImagesGeomPavage
-            self.pavage.drawRasterPavage(
-                layer, self.transformations, self.patternPositions
-            )
+            ds = gdal.Open(str(rlayer.dataProvider().dataSourceUri()), gdal.GA_Update)
+            image = ds.ReadAsArray()
+            if len(image.shape) > 2:
+                image = np.transpose(image, (1, 2, 0))
+
+            polySrc = None
+            polyDst = None
+            for g in pavageGeoms:
+                pl = g.asPolygon()  # first polyline is the tile to copy
+                aPoly = [[p.x(), p.y()] for p in pl[0]]
+                aPolyPx, _, _, _, _ = tools.toPix(rlayer, aPoly)
+
+                if polySrc is None:
+                    polySrc = aPolyPx
+                else:
+                    polyDst = aPolyPx
+
+                    # image = tools.copyPasteRasterTile(image, polySrc, polyDst)
+                    image = tools.copier_region_avec_transformation(
+                        image, polySrc, polyDst
+                    )
+                    # break
+
+            if len(image.shape) > 2:
+                image = np.transpose(image, (2, 0, 1))
+
+            tools.updateGeotiff(ds, image)
 
     def do(self):
         try:
@@ -582,65 +621,33 @@ class TDMapTool(QgsMapTool):
 
             # pavage geoms limit to extent
             extent = self._canvas.extent()
+            pavageGeoms, pavageTransfos, positions, pavageAttr = (
+                self.pavage.getPavagePolygons(extent)
+            )
+            self.transformations = pavageTransfos
+            self.patternPositions = positions
 
             # prepare vector layers
-            layers = getLayers()
             self.message(self.tr("Initialization..."))
-            newVectorLayers = self.prepareNewVectorLayers(group, layers, tileLayer)
-            newRasterLayers = self.prepareNewRasterLayers(group, layers, extent)
 
+            layers = tools.getLayers()
+            newVectorLayers = self.prepareNewVectorLayers(group, layers, tileLayer)
             # processes the new layers
             self.doVectorLayers(newVectorLayers)
-            self.doRasterLayers(newRasterLayers)
 
-                pr = layer.dataProvider()
-                layer.startEditing()
-                try:
-                    toDelete = []
-                    feats = []
-                    self.log(f"- {layer.name()}")
+            if tools.SUPPORT_RASTER:
+                newRasterLayers = self.prepareNewRasterLayers(layers, extent)
+                self.doRasterLayers(newRasterLayers, pavageGeoms)
 
-                    for _, f in enumerate(layer.getFeatures()):
-                        QApplication.processEvents()
-                        toDelete.append(f.id())
-                        g = f.geometry()
-                        images, rotations, flips = self.pavage.getImagesGeomPavage(
-                            g, self.transformations, self.patternPositions
-                        )
-                        rotations = list(itertools.chain(*rotations))
-                        flips = list(itertools.chain(*flips))
-                        for image, rot, flip in zip(images, rotations, flips):
-                            feat = QgsFeature()
-                            try:
-                                feat.setGeometry(image)  # or image
+                for rlayer in newRasterLayers:
+                    self.addLayer(group, rlayer, visible=True)
 
-                                fields = f.fields()
-                                feat.setFields(fields)
-                                for atid in pr.attributeIndexes():
-                                    if atid not in pr.pkAttributeIndexes():
-                                        field = f.fields().at(atid)
-                                        if field.name() not in (
-                                            "cornelis_rotation",
-                                            "cornelis_flip",
-                                        ):
-                                            feat.setAttribute(
-                                                field.name(), f.attribute(atid)
-                                            )
-
-                                feat.setAttribute("cornelis_rotation", rot)
-                                feat.setAttribute("cornelis_flip", flip)
-
-                                feats.append(feat)
-                            except Exception as e:
-                                self.log(f";-(   {e}")
-                                continue
-
-                    self.log(f"- {layer.name()} {len(feats)} feats")
-                    pr.addFeatures(feats)
-                    pr.deleteFeatures(toDelete)
-                finally:
-                    layer.commitChanges()
-                    layer.triggerRepaint()
+            else:
+                self.message(
+                    self.tr(
+                        "Raster support needs install 'skimage' and 'scipy' libraries"
+                    )
+                )
 
             # Add pattern layer
             # pattern geoms
@@ -664,6 +671,7 @@ class TDMapTool(QgsMapTool):
 
             # Add pavage layer
             pavageAttr["name"] = {"fieldtype": "str", "value": pname}
+
             layerPavage = self.layerFromGeoms(
                 pavageGeoms,
                 attrs=pavageAttr,
@@ -675,7 +683,7 @@ class TDMapTool(QgsMapTool):
             # Add Sketch layer
             if self.pavage.hasSketch():
                 geom = self.pavage.getSketchGeom()
-                images, rotations, flips = self.pavage.getImagesGeomPavage(
+                images, _, _, _, _ = self.pavage.getImagesGeomPavage(
                     geom, self.transformations, self.patternPositions
                 )
 
@@ -692,10 +700,17 @@ class TDMapTool(QgsMapTool):
         except Exception as e:
             self.message(self.tr("End !"), level=Qgis.MessageLevel.Critical)
             self.log(f"{e}")
+            raise (e)
 
         finally:
+            for layer in newVectorLayers:
+                layer.triggerRepaint()
+
+            if tools.SUPPORT_RASTER:
+                for layer in newRasterLayers:
+                    layer.triggerRepaint()
+
             iface.statusBarIface().clearMessage()
-            # iface.mapCanvas().refreshAllLayers()
             iface.mapCanvas().waitWhileRendering()
             QgsApplication.restoreOverrideCursor()
 
@@ -750,7 +765,7 @@ class TDMapTool(QgsMapTool):
                 if len(geoms) > 0:
                     images = []
                     for g in geoms:
-                        newimages, _, _ = self.pavage.getImagesGeomPavage(
+                        newimages, _, _, _, _ = self.pavage.getImagesGeomPavage(
                             g, self.transformations, self.patternPositions
                         )
                         images = images + newimages
@@ -761,7 +776,7 @@ class TDMapTool(QgsMapTool):
     def buildCursorRubberBand(self, ptXY):
         geom = QgsGeometry.fromPointXY(ptXY)
 
-        images, _, _ = self.pavage.getImagesGeomPavage(
+        images, _, _, _, _ = self.pavage.getImagesGeomPavage(
             geom, self.transformations, self.patternPositions
         )
         if len(images) > 1:
@@ -786,7 +801,7 @@ class TDMapTool(QgsMapTool):
 
         self.rbSketch.setToGeometry(geom)
 
-        images, _, _ = self.pavage.getImagesGeomPavage(
+        images, _, _, _, _ = self.pavage.getImagesGeomPavage(
             geom, self.transformations, self.patternPositions
         )
         if len(images) > 0:
@@ -1040,7 +1055,23 @@ class TDMapTool(QgsMapTool):
             tileGeom = globals()["globalPavage"].getTilePolygon()
 
             geom = geom.intersection(tileGeom)
-            geoms, _, _ = globals()["globalPavage"].getImagesGeomPavage(
+            geoms, _, _, _, _ = globals()["globalPavage"].getImagesGeomPavage(
+                geom, self.transformations, self.patternPositions
+            )
+            newGeom = geoms[0]
+            for g in geoms[1:]:
+                newGeom.addPartGeometry(g)
+
+            return newGeom
+        except Exception:
+            return None
+
+    def buildPavageImagesfromPoint(self, geom):
+
+        if "globalPavage" not in globals() or globals()["globalPavage"] is None:
+            return None
+        try:
+            geoms, _, _, _, _ = globals()["globalPavage"].getImagesGeomPavage(
                 geom, self.transformations, self.patternPositions
             )
             newGeom = geoms[0]
