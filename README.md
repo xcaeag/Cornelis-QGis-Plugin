@@ -77,9 +77,11 @@ Et si les bibliothèques 'scipy' et 'scikit-image' sont installées, les couches
 
 L'étendu du nouveau raster "pavé" est alignée à la vue courante.
 
-ex : les îles de Ouessan et Nasseuo !
+ex : un ours multiplié, et un relief à parcourir à l'infini.
 
-![alt text](Cornelis/resources/raster.png)
+![Ours 2Gf](Cornelis/resources/ours-2Gf.gif)
+
+![Relief 1Gc](Cornelis/resources/relief-1Gc.gif)
 
 ```bash
 # installer les lib
