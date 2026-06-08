@@ -591,12 +591,7 @@ class TDMapTool(QgsMapTool):
                     polySrc = aPolyPx
                 else:
                     polyDst = aPolyPx
-
-                    # image = tools.copyPasteRasterTile(image, polySrc, polyDst)
-                    image = tools.copier_region_avec_transformation(
-                        image, polySrc, polyDst
-                    )
-                    # break
+                    image = tools.copyRegionWithTransformation(image, polySrc, polyDst)
 
             if len(image.shape) > 2:
                 image = np.transpose(image, (2, 0, 1))

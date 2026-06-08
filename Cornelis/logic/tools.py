@@ -168,7 +168,7 @@ def toPix(raster, pts):
     return (r, xpixmin, ypixmin, xpixmax, ypixmax)
 
 
-def calculer_transformation_affine(poly_source, poly_cible):
+def calcAffineTransformation(poly_source, poly_cible):
     """
     Calcule la matrice de transformation affine entre deux polygones.
 
@@ -219,7 +219,7 @@ def calculer_transformation_affine(poly_source, poly_cible):
     return matrice
 
 
-def inverser_transformation_affine(matrice):
+def invertAffineTransformation(matrice):
     """
     Inverse une matrice de transformation affine 2x3.
 
@@ -263,7 +263,7 @@ def copyPasteRasterTile(image, poly_source, poly_cible, methode_interpolation="l
 
     image_resultat = image.copy()
 
-    matrice_transform = calculer_transformation_affine(poly_source, poly_cible)
+    matrice_transform = calcAffineTransformation(poly_source, poly_cible)
 
     min_x_c = int(np.floor(poly_cible[:, 0].min()))
     max_x_c = int(np.ceil(poly_cible[:, 0].max()))
@@ -291,7 +291,7 @@ def copyPasteRasterTile(image, poly_source, poly_cible, methode_interpolation="l
     masque_cible = np.zeros((max_y_c - min_y_c, max_x_c - min_x_c), dtype=bool)
     masque_cible[rr_c, cc_c] = True
 
-    matrice_inv = inverser_transformation_affine(matrice_transform)
+    matrice_inv = invertAffineTransformation(matrice_transform)
 
     h_cible, w_cible = max_y_c - min_y_c, max_x_c - min_x_c
 
@@ -345,7 +345,7 @@ def copyPasteRasterTile(image, poly_source, poly_cible, methode_interpolation="l
     return image_resultat
 
 
-def copier_region_avec_transformation(
+def copyRegionWithTransformation(
     image,
     poly_source,
     poly_cible,
@@ -369,7 +369,7 @@ def copier_region_avec_transformation(
     poly_cible = np.array(poly_cible, dtype=np.float32)
 
     # Analyser la transformation
-    # info_transform = analyser_transformation(poly_source, poly_cible)
+    # info_transform = analyseTransformation(poly_source, poly_cible)
 
     """print(f"\n📊 Analyse de la transformation:")
     print(f"   Translation: {info_transform['translation_norme']:.2f} pixels")
@@ -385,9 +385,9 @@ def copier_region_avec_transformation(
 
     # Calculer la transformation rigide
     if autoriser_reflexion:
-        matrice_transform = calculer_transformation_rigide(poly_source, poly_cible)
+        matrice_transform = calcRigidTransformation(poly_source, poly_cible)
     else:
-        matrice_transform = calculer_transformation_rigide_sans_reflexion(
+        matrice_transform = calcRigidTransformationWithoutReflection(
             poly_source, poly_cible
         )
 
@@ -421,7 +421,7 @@ def copier_region_avec_transformation(
     masque_cible[rr_c, cc_c] = True
 
     # Inverser la transformation
-    matrice_inv = inverser_transformation_affine(matrice_transform)
+    matrice_inv = invertAffineTransformation(matrice_transform)
 
     h_cible, w_cible = max_y_c - min_y_c, max_x_c - min_x_c
 
@@ -480,7 +480,7 @@ def copier_region_avec_transformation(
     return image_resultat
 
 
-def analyser_transformation(poly_source, poly_cible):
+def analyseTransformation(poly_source, poly_cible):
     """
     Analyse le type de transformation entre deux polygones.
 
@@ -549,7 +549,7 @@ def analyser_transformation(poly_source, poly_cible):
     return info
 
 
-def calculer_transformation_rigide(poly_source, poly_cible):
+def calcRigidTransformation(poly_source, poly_cible):
     """
     Calcule la transformation rigide (rotation + translation + réflexion éventuelle)
     entre deux polygones SANS déformation ni étirement.
@@ -593,7 +593,7 @@ def calculer_transformation_rigide(poly_source, poly_cible):
     return matrice
 
 
-def calculer_transformation_rigide_sans_reflexion(poly_source, poly_cible):
+def calcRigidTransformationWithoutReflection(poly_source, poly_cible):
     """
     Calcule la transformation rigide (rotation + translation uniquement)
     SANS réflexion, SANS déformation.
