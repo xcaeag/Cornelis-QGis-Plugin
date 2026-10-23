@@ -413,6 +413,7 @@ class TDMapTool(QgsMapTool):
         removes = []
         for f in newLayer.getFeatures():
             geom = f.geometry()
+            geom = geom.makeValid()
             if transformationRequired:
                 geom.transform(
                     QgsCoordinateTransform(layer_crs, mask_crs, QgsProject.instance())
